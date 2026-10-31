@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="fr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réseau IPv4 · du câble à l'application - JC FOUCHE 2026 - www.savoirnumerique.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Charte LABO JC Fouché : thème sombre, titres Barlow Condensed, chiffres IBM Plex Mono.
+   Trois couleurs de couche : PHYSIQUE = bleu, LOGIQUE (IP) = vert, LOGICIEL (ports, services) = ambre, tunnel VPN = rose. */
+:root{
+  --bg:#0c0e10; --bay:#121518; --bay-2:#181c20; --bay-3:#1e2328; --rule:#262c32; --rule-2:#333a42;
+  --fg:#e6e9ec; --muted:#8e979f; --dim:#5f6870; --ico:#d4d9de;
+  --amber:#e8b84a; --amber-ink:#1b1404; --phos:#86e0a2; --warn:#f0a35e; --bad:#ef6b6b; --blue:#5b95f0; --pink:#ec3a8c; --teal:#5fd4c4;
+  --phy:#5b95f0; --log:#86e0a2; --app:#e8b84a; --vpn:#ec3a8c;
+  --f-disp:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  --f-ui:'Barlow Semi Condensed','Barlow','Arial Narrow',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-ui);font-size:15px;line-height:1.4;padding:0 16px 32px;margin:0}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--f-disp);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:0;text-wrap:balance}
+h1{font-size:1.55rem} h1 span{color:var(--amber)}
+h2{font-size:1.02rem} h3{font-size:.86rem;color:var(--muted)}
+button,select,input{font:inherit;color:var(--fg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--bay-2);border:1px solid var(--rule-2);border-radius:6px;padding:6px 11px;cursor:pointer;white-space:nowrap;font-size:.92rem}
+.btn:hover{border-color:var(--muted)}
+.btn.sm{padding:3px 8px;font-size:.8rem}
+.btn.primary{background:var(--amber);color:var(--amber-ink);border-color:var(--amber);font-weight:600}
+.btn.danger{border-color:#6b2e2e;color:#f3b3b3}
+.btn.go{border-color:#2f5a3c;color:#bfe8cb}
+.btn:focus-visible,select:focus-visible,input:focus-visible,.seg button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+select,input[type=text],input[type=number]{background:var(--bay-2);border:1px solid var(--rule-2);border-radius:6px;padding:4px 6px;min-width:0;font-size:.84rem;max-width:100%}
+input[type=text],input[type=number]{font-family:var(--f-mono)}
+input[type=checkbox]{accent-color:var(--amber);width:15px;height:15px;margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .dim{color:var(--dim)}
+.seg{display:flex;border:1px solid var(--rule-2);border-radius:6px;overflow:hidden}
+.seg button{flex:1 1 0;background:var(--bay-2);border:0;border-right:1px solid var(--rule-2);padding:5px 10px;cursor:pointer;font-size:.84rem;white-space:nowrap}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--amber);color:var(--amber-ink);font-weight:600}
+.seg button.v-phy[aria-pressed=true]{background:var(--phy);color:#06101f}
+.seg button.v-log[aria-pressed=true]{background:var(--log);color:#0b1a10}
+.seg button.v-app[aria-pressed=true]{background:var(--app);color:var(--amber-ink)}
+.seg.inv button[aria-pressed=true]{background:var(--phos);color:#0b1a10}
+
+/* En-tête */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-block:16px 12px;border-bottom:1px solid var(--rule)}
+.trow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.brand .sub{color:var(--muted);margin:2px 0 0;font-size:.92rem}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* Grilles */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:14px;margin-top:14px;align-items:start}
+.mid{display:grid;grid-template-columns:330px minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:14px;align-items:stretch}
+@media (max-width:1250px){.main{grid-template-columns:minmax(0,1fr)}.mid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.mid>.scn{grid-column:1/-1}}
+@media (max-width:780px){.mid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--bay);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;min-width:0}
+.phead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin-bottom:8px}
+.phead h2{margin-right:auto}
+.phead .hint{font-size:.78rem;color:var(--dim)}
+
+/* Carte */
+.mapwrap{overflow-x:auto;border-radius:6px;background:#0a0c0e;border:1px solid var(--rule)}
+#map{display:block;width:100%;min-width:960px;height:auto;user-select:none}
+#map text{font-family:var(--f-mono)}
+#map .tn{font-family:var(--f-disp);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+#map .tu{font-family:var(--f-ui)}
+#map .halo{paint-order:stroke;stroke:#0a0c0e;stroke-width:3.5px;stroke-linejoin:round}
+#map .dev{cursor:pointer}
+#map .dev:hover .ring{opacity:.6}
+#map .lhit{cursor:pointer}
+#map .lhit:hover+.lvis,#map .lk:hover .lvis{filter:brightness(1.4)}
+#map .L-phy,#map .L-log,#map .L-app,#map .lnk{transition:opacity .25s}
+#map[data-v=phy] .L-log,#map[data-v=phy] .L-app{opacity:.07}
+#map[data-v=log] .L-phy,#map[data-v=log] .L-app{opacity:.07}
+#map[data-v=app] .L-phy,#map[data-v=app] .L-log{opacity:.07}
+#map[data-v=log] .lnk,#map[data-v=app] .lnk{opacity:.3}
+.legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 14px;margin-top:10px;font-size:.78rem;color:var(--muted)}
+@media (max-width:780px){.legend{grid-template-columns:minmax(0,1fr)}}
+.legend h3{font-size:.78rem;margin-bottom:3px}
+.legend .lg{display:flex;align-items:center;gap:7px;margin:2px 0;line-height:1.25}
+.legend svg{flex:0 0 auto}
+.lphy h3{color:var(--phy)} .llog h3{color:var(--log)} .lapp h3{color:var(--app)}
+
+/* Inspecteur */
+#insp{max-height:calc(100vh - 40px);overflow:auto;position:sticky;top:12px}
+@media (max-width:1250px){#insp{position:static;max-height:none}}
+.ihead{display:flex;gap:10px;align-items:center}
+.ihead svg{width:64px;height:54px;flex:0 0 auto}
+.ihead h2{font-size:1.25rem}
+.iexp{font-size:.82rem;color:var(--muted);margin:8px 0;line-height:1.38;border-left:3px solid var(--rule-2);padding-left:8px}
+.sec{margin-top:12px;border-top:1px solid var(--rule);padding-top:8px}
+.sec>h3{margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.sec>h3 .sw{width:9px;height:9px;border-radius:2px;display:inline-block}
+.ibtns{display:flex;flex-wrap:wrap;gap:6px}
+.ifc{background:var(--bay-2);border:1px solid var(--rule);border-left:3px solid var(--log);border-radius:6px;padding:7px 8px;margin-bottom:8px}
+.ifh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:.8rem;margin-bottom:6px}
+.ifh b{font-family:var(--f-mono)}
+.phyl{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.76rem;color:#a9c6fb;border:1px dashed #2d4a7a;border-radius:5px;padding:3px 6px;margin-bottom:6px}
+.phyl.down{color:#f3b3b3;border-color:#6b2e2e}
+.ifg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px}
+.ifg label{display:flex;flex-direction:column;gap:1px;font-size:.66rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);min-width:0}
+.ifg input,.ifg select{width:100%}
+.subn{font-family:var(--f-mono);font-size:.7rem;color:var(--dim);margin-top:5px;line-height:1.45}
+.msg{font-size:.76rem;margin-top:5px;line-height:1.35}
+.msg.er{color:#f3b3b3} .msg.ok{color:#bfe8cb} .msg.wa{color:#f5cf9f}
+.row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--rule);font-size:.82rem;min-width:0}
+.row:last-child{border-bottom:0}
+.row .grow{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.row input[type=number]{width:86px;flex:0 0 auto}
+.sdot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+table{border-collapse:collapse;width:100%;font-size:.76rem}
+th,td{padding:3px 4px;text-align:left;border-bottom:1px solid var(--rule);white-space:nowrap}
+th{font-family:var(--f-disp);font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-size:.72rem}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+td input[type=text]{width:100%;min-width:90px;font-size:.76rem;padding:2px 4px}
+td input[type=number]{width:64px;font-size:.76rem;padding:2px 4px}
+.tw{overflow-x:auto}
+.note{font-size:.78rem;line-height:1.35;border-radius:6px;padding:6px 8px;border:1px solid var(--rule-2);background:var(--bay-2);color:var(--muted);margin-top:6px}
+.note.err{border-color:#6b2e2e;color:#f3b3b3;background:#1b1112}
+.note.ok{border-color:#2f5a3c;color:#bfe8cb;background:#101a13}
+.note.wa{border-color:#6b4e2a;color:#f5cf9f;background:#1a1510}
+.note.vp{border-color:#6b2a4c;color:#f6a9cc;background:#1a1016}
+.pill{font-family:var(--f-mono);font-size:.7rem;border:1px solid var(--pink);color:#f6a9cc;border-radius:999px;padding:1px 8px;white-space:nowrap}
+
+/* Scénarios */
+.scn select{width:100%}
+.scnbar{display:flex;gap:6px;margin-bottom:8px}
+.scnbar select{flex:1 1 auto}
+.scn p{font-size:.84rem;color:var(--muted);margin:6px 0}
+.prog{height:5px;background:var(--bay-3);border-radius:3px;overflow:hidden;margin:8px 0}
+.prog i{display:block;height:100%;background:var(--phos);transition:width .3s}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:st}
+ol.steps li{counter-increment:st;position:relative;padding:6px 6px 6px 30px;border-radius:6px;font-size:.84rem;line-height:1.35;color:var(--dim);margin-bottom:3px}
+ol.steps li::before{content:counter(st);position:absolute;left:6px;top:6px;width:18px;height:18px;border-radius:50%;border:1px solid var(--rule-2);font-family:var(--f-mono);font-size:.7rem;display:flex;align-items:center;justify-content:center}
+ol.steps li.done{color:#bfe8cb}
+ol.steps li.done::before{content:'✓';background:var(--phos);color:#0b1a10;border-color:var(--phos)}
+ol.steps li.cur{color:var(--fg);background:#1d1a10;border:1px solid #4a3d18}
+ol.steps li.cur::before{border-color:var(--amber);color:var(--amber)}
+ol.steps code,.scn code{font-family:var(--f-mono);font-size:.78rem;color:var(--amber);background:#0a0c0e;padding:0 4px;border-radius:3px}
+.hintb{background:none;border:0;color:var(--blue);cursor:pointer;font-size:.76rem;padding:0;margin-left:4px;text-decoration:underline}
+.hintt{display:block;margin-top:4px;font-size:.78rem;color:var(--muted)}
+
+/* Fenêtres terminal / navigateur */
+.win{background:var(--bay);border:1px solid var(--rule);border-radius:8px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.wbar{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bay-3);border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.wbar .dots{display:flex;gap:5px}
+.wbar .dots i{width:10px;height:10px;border-radius:50%;background:#3a424a;display:block}
+.wbar .dots i:nth-child(1){background:#ef6b6b}.wbar .dots i:nth-child(2){background:#e8b84a}.wbar .dots i:nth-child(3){background:#86e0a2}
+.wbar h2{font-size:.92rem;margin-right:auto}
+.wbar select{font-size:.8rem}
+.term{background:#060708;font-family:var(--f-mono);font-size:.78rem;line-height:1.42;height:380px;overflow:auto;padding:8px 10px;white-space:pre-wrap;overflow-wrap:anywhere;flex:1 1 auto}
+.term .cl{color:#e6e9ec}
+.term .ok{color:var(--phos)} .term .er{color:#ef8a8a} .term .wa{color:#f5cf9f} .term .mu{color:#7d8790} .term .in{color:var(--amber)} .term .vp{color:#f6a9cc} .term .bl{color:#9cc0ff}
+.tin{display:flex;align-items:center;gap:6px;background:#060708;border-top:1px solid var(--rule);padding:6px 10px;font-family:var(--f-mono);font-size:.8rem}
+.tin span{color:var(--phos);white-space:nowrap}
+.tin input{flex:1 1 auto;background:transparent;border:0;outline:0;font-family:var(--f-mono);font-size:.8rem;padding:2px 0;min-width:0}
+.tchips{display:flex;flex-wrap:wrap;gap:4px;padding:6px 10px;border-top:1px solid var(--rule)}
+.tchips button{background:var(--bay-2);border:1px solid var(--rule-2);border-radius:999px;padding:1px 9px;font-size:.74rem;cursor:pointer;color:var(--muted);font-family:var(--f-mono)}
+.tchips button:hover{color:var(--fg);border-color:var(--muted)}
+.addr{display:flex;gap:6px;padding:7px 10px;border-bottom:1px solid var(--rule);background:var(--bay-2)}
+.addr input{flex:1 1 auto;font-size:.82rem}
+.bview{background:#f4f2ed;color:#1c2024;height:300px;overflow:auto;font-family:var(--f-ui);font-size:.9rem;flex:1 1 auto}
+.btrace{border-top:1px solid var(--rule);padding:6px 10px;font-size:.74rem;font-family:var(--f-mono);display:flex;flex-direction:column;gap:2px;max-height:130px;overflow:auto}
+.btrace .s{display:flex;gap:6px;align-items:baseline}
+.btrace .s i{font-style:normal;flex:0 0 auto;font-family:var(--f-disp);font-weight:600;letter-spacing:.05em;text-transform:uppercase;font-size:.7rem;padding:0 5px;border-radius:3px}
+.s.app i{background:#3a2e10;color:var(--app)} .s.log i{background:#11301c;color:var(--log)} .s.phy i{background:#132a4d;color:#9cc0ff} .s.vpn i{background:#3b1028;color:#f6a9cc} .s.err i{background:#3b1414;color:#ef8a8a}
+.s.err{color:#ef8a8a}
+/* pages web simulées */
+.pg{padding:14px 18px}
+.pg h1{font-family:var(--f-disp);font-size:1.5rem;color:#1c2024;letter-spacing:.03em;margin:0 0 4px}
+.pg h1 span{color:#b4831c}
+.pg h4{margin:12px 0 4px;font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.05em;font-size:.9rem;color:#555}
+.pg p{margin:4px 0;line-height:1.4}
+.pg a,.pg .lk{color:#1f5fc9;cursor:pointer;text-decoration:underline}
+.pg .bar{background:#1c2024;color:#e8b84a;padding:8px 18px;font-family:var(--f-disp);font-weight:600;letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pg .bar small{color:#aab3bb;font-family:var(--f-mono);text-transform:none;letter-spacing:0;font-weight:400}
+.pg table{font-size:.82rem;color:#1c2024;margin-top:4px}
+.pg th{color:#555}.pg td,.pg th{border-color:#d8d4cb}
+.pg .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+.pg .tile{background:#fff;border:1px solid #dcd8cf;border-radius:6px;padding:8px;font-size:.84rem}
+.pg .tile b{display:block;font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.04em}
+.pg .ip{font-family:var(--f-mono);background:#fff3d6;border:1px solid #e8cf8c;padding:1px 6px;border-radius:4px}
+.pgerr{padding:30px 22px;color:#3a3f45}
+.pgerr .big{font-size:2.4rem;line-height:1}
+.pgerr h1{font-family:var(--f-ui);font-size:1.25rem;margin:10px 0 6px}
+.pgerr code{font-family:var(--f-mono);font-size:.78rem;color:#777}
+.player{background:#111;border-radius:8px;padding:12px;color:#eee;margin-top:8px}
+.eq{display:flex;align-items:flex-end;gap:3px;height:46px;margin:8px 0}
+.eq i{flex:1;background:linear-gradient(#e8b84a,#ec3a8c);border-radius:2px;animation:eqa 1s ease-in-out infinite alternate}
+@keyframes eqa{from{height:12%}to{height:100%}}
+.vid{aspect-ratio:16/9;background:linear-gradient(120deg,#1b2a4a,#4a1b3a,#1b4a3a);background-size:300% 300%;animation:vg 6s ease infinite;border-radius:6px;display:flex;align-items:center;justify-content:center;position:relative;margin-top:8px}
+.vid::after{content:'';border-left:26px solid rgba(255,255,255,.85);border-top:16px solid transparent;border-bottom:16px solid transparent}
+.vid span{position:absolute;left:8px;bottom:6px;font-family:var(--f-mono);font-size:.72rem;color:#fff;background:rgba(0,0,0,.5);padding:1px 6px;border-radius:3px}
+@keyframes vg{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
+.fl{font-family:var(--f-mono);font-size:.82rem;line-height:1.6}
+
+/* Encapsulation */
+.bay{margin-top:14px;background:var(--bay);border:1px solid var(--rule);border-radius:8px;padding:12px;min-width:0}
+.bay-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:10px}
+.bay-head h2{margin-right:auto}
+.encg{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+@media (max-width:900px){.encg{grid-template-columns:minmax(0,1fr)}}
+.enc{border-radius:7px;padding:6px 8px 8px;border:1px solid;min-width:0}
+.enc .et{font-family:var(--f-disp);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:.74rem}
+.enc .ev{font-family:var(--f-mono);font-size:.76rem;color:var(--fg);margin:2px 0 6px;overflow-wrap:anywhere}
+.e1{border-color:#2d4a7a;background:#0e1626}.e1>.et{color:#9cc0ff}
+.e2{border-color:#3b5f9c;background:#111d33}.e2>.et{color:#9cc0ff}
+.ev2{border-color:#7a2d55;background:#1d0f17}.ev2>.et{color:#f6a9cc}
+.e3{border-color:#2f6a43;background:#0f1c14}.e3>.et{color:var(--log)}
+.e4{border-color:#6b5420;background:#1c170b}.e4>.et{color:var(--app)}
+.e7{border-color:#8f7228;background:#2a210c}.e7>.et{color:#f5d27a}
+.pathc{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:.8rem}
+.pathc b{font-family:var(--f-disp);font-weight:600;letter-spacing:.04em;background:var(--bay-2);border:1px solid var(--rule-2);border-radius:4px;padding:1px 6px}
+.pathc b.t{border-color:var(--pink);color:#f6a9cc}
+.pathc i{font-style:normal;color:var(--pink)}
+.notes{color:var(--muted);font-size:.86rem;max-width:130ch;margin-top:18px}
+.notes h3{margin-bottom:6px;color:var(--amber)}
+.notes p{margin:0 0 8px}
+.notes b{color:var(--fg)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head><body>
+
+<header class="top">
+  <div class="brand">
+    <div class="trow"><h1>Réseau IPv4 · du câble à l'application <span>- JC FOUCHE 2026 - www.savoirnumerique.com</span></h1><button class="btn sm" id="pageFS" type="button" aria-pressed="false">⛶ Plein écran</button></div>
+    <p class="sub">Câbles et ondes (physique) → adresses, masques et routes (logique) → ports et services (logiciel) · LAN, DAS, NAS, SAN, Internet et VPN</p>
+  </div>
+  <div class="tools">
+    <div class="seg" id="viewSeg" role="group" aria-label="Couche affichée">
+      <button type="button" data-v="all">Tout</button><button type="button" class="v-phy" data-v="phy">Physique</button><button type="button" class="v-log" data-v="log">Logique</button><button type="button" class="v-app" data-v="app">Logiciel</button>
+    </div>
+    <button class="btn" id="btnReset" type="button">Réinitialiser le réseau</button>
+  </div>
+</header>
+
+<div class="main">
+  <section class="panel">
+    <div class="phead"><h2>Infrastructure</h2><span class="hint">Cliquez sur un équipement pour l'inspecter · cliquez sur un câble pour le débrancher ou le rebrancher</span></div>
+    <div class="mapwrap"><svg id="map" viewBox="0 0 1440 860" data-v="all" role="img" aria-label="Schéma de l'infrastructure réseau"><g id="gS"></g><g id="gA"></g></svg></div>
+    <div class="legend" id="legend"></div>
+  </section>
+  <aside class="panel" id="insp" aria-label="Inspecteur d'équipement"></aside>
+</div>
+
+<div class="mid">
+  <section class="panel scn" id="scn"></section>
+  <section class="win" aria-label="Terminal">
+    <div class="wbar"><span class="dots"><i></i><i></i><i></i></span><h2>Terminal</h2><select id="actSel" aria-label="Poste actif"></select></div>
+    <div class="term" id="termOut" aria-live="polite"></div>
+    <div class="tin"><span id="prompt"></span><input id="termIn" type="text" autocomplete="off" spellcheck="false" aria-label="Saisie de commande"></div>
+    <div class="tchips" id="tchips"></div>
+  </section>
+  <section class="win" aria-label="Navigateur">
+    <div class="wbar"><span class="dots"><i></i><i></i><i></i></span><h2>Navigateur · <span id="brDev" style="color:var(--amber)"></span></h2></div>
+    <div class="addr"><input id="url" type="text" spellcheck="false" aria-label="Adresse"><button class="btn sm primary" id="go" type="button">Aller</button></div>
+    <div class="tchips" id="bmk"></div>
+    <div class="bview" id="bview"></div>
+    <div class="btrace" id="btrace"></div>
+  </section>
+</div>
+
+<section class="bay" aria-labelledby="hE">
+  <div class="bay-head"><h2 id="hE">Dernier échange · encapsulation du paquet</h2><span class="mono dim" id="encInfo" style="font-size:.76rem"></span></div>
+  <div class="encg"><div id="enc"></div><div id="encR"></div></div>
+</section>
+
+<section class="notes">
+  <h3>Pistes pédagogiques</h3>
+  <p><b>1 · Trois couches, trois couleurs.</b> En vue <b style="color:var(--phy)">Physique</b>, on ne voit que les supports : cuivre, fibre, Wi-Fi, 4G, liaisons opérateur. En vue <b style="color:var(--log)">Logique</b>, on voit les réseaux IP, les adresses et le tunnel VPN. En vue <b style="color:var(--app)">Logiciel</b>, on voit les services et leurs ports, ainsi que les sessions ouvertes (lecteurs réseau, LUN iSCSI). Un même échange traverse les trois : regardez l'encapsulation sous le schéma.</p>
+  <p><b>2 · Le masque décide qui est « voisin ».</b> Si la destination est dans le même sous-réseau, le poste l'appelle directement (ARP). Sinon, il confie le paquet à sa passerelle. Une passerelle fausse : le LAN marche, Internet non. Un masque faux : certains voisins deviennent « lointains ».</p>
+  <p><b>3 · Adresses privées et Internet.</b> 10/8, 172.16/12 et 192.168/16 ne sont pas routées sur Internet. Le NAT de la box ou du routeur remplace l'adresse privée par l'adresse publique. Pour atteindre 192.168.10.30 depuis la maison, il faut un tunnel VPN, ou une redirection de port pour publier un seul service.</p>
+  <p><b>4 · Un port = un service.</b> L'adresse IP désigne la machine, le port désigne le programme. Changez le port d'un service : la machine répond toujours au ping, mais le client doit connaître le nouveau port (sinon « connexion refusée »).</p>
+  <p><b>5 · DAS, NAS, SAN.</b> Le DAS est un disque relié directement (SATA, SAS, NVMe). Le NAS partage des <b>fichiers</b> sur le LAN (SMB, NFS). Le SAN prête des <b>blocs</b> (des LUN) sur un réseau dédié : le serveur les voit comme des disques locaux et les formate lui-même. Comparez avec <code>lsblk</code>.</p>
+  <p class="dim" style="font-size:.78rem">Simulation pédagogique simplifiée : un seul VLAN, routage statique, NAT avec suivi de connexion implicite, pas de pare-feu sur les postes, temps de réponse indicatifs. Adresses publiques prises dans les plages réservées à la documentation (RFC 5737) et à l'opérateur 4G (CGNAT 100.64.0.0/10).</p>
+</section>
+
+<script>
+'use strict';
+/* ===================== outils ===================== */
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fr = (n, d = 0) => Number(n).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BS = '\\';
+const unc = (h, s) => BS + BS + h + (s ? BS + s : '');
+
+/* ===================== IPv4 ===================== */
+function ip2n(s) { const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(String(s || '').trim()); if (!m) return null; const p = m.slice(1).map(Number); if (p.some(v => v > 255)) return null; return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3]; }
+const n2ip = n => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+const maskN = c => c <= 0 ? 0 : ((0xffffffff << (32 - c)) >>> 0);
+const maskStr = c => n2ip(maskN(c));
+const netN = (ip, c) => ((ip2n(ip) & maskN(c)) >>> 0);
+const bcastN = (ip, c) => ((netN(ip, c) | (~maskN(c) >>> 0)) >>> 0);
+function sameNet(a, c, b) { const x = ip2n(a), y = ip2n(b); if (x == null || y == null) return false; return ((x & maskN(c)) >>> 0) === ((y & maskN(c)) >>> 0); }
+function isPriv(ip) { const n = ip2n(ip); if (n == null) return false; const a = n >>> 24, b = (n >>> 16) & 255; return a === 10 || (a === 172 && b >= 16 && b < 32) || (a === 192 && b === 168) || (a === 169 && b === 254) || (a === 100 && b >= 64 && b < 128) || a === 127; }
+const hostsCount = c => c >= 31 ? (c === 31 ? 2 : 1) : Math.pow(2, 32 - c) - 2;
+const netLbl = a => a ? n2ip(netN(a.ip, a.cidr)) + '/' + a.cidr : '—';
+
+/* ===================== catalogues ===================== */
+const SVC = {
+  smb: { n: 'Partage de fichiers SMB', s: 'SMB', p: 'TCP', port: 445, c: '#e8b84a' },
+  http: { n: 'Serveur web HTTP', s: 'HTTP', p: 'TCP', port: 80, c: '#f0a35e' },
+  https: { n: 'Serveur web HTTPS (TLS)', s: 'HTTPS', p: 'TCP', port: 443, c: '#f0a35e' },
+  ftp: { n: 'Serveur FTP', s: 'FTP', p: 'TCP', port: 21, c: '#e89a4a' },
+  dns: { n: 'Serveur DNS', s: 'DNS', p: 'UDP', port: 53, c: '#f5d76e' },
+  ssh: { n: 'Administration SSH', s: 'SSH', p: 'TCP', port: 22, c: '#c9b48a' },
+  audio: { n: 'Streaming audio (Icecast)', s: 'AUDIO', p: 'TCP', port: 8000, c: '#f08a5e' },
+  video: { n: 'Streaming vidéo (HLS)', s: 'VIDÉO', p: 'TCP', port: 8080, c: '#f08a5e' },
+  mysql: { n: 'Base de données MySQL', s: 'MySQL', p: 'TCP', port: 3306, c: '#e0c070' },
+  nfs: { n: 'Partage de fichiers NFS', s: 'NFS', p: 'TCP', port: 2049, c: '#e8b84a' },
+  nasweb: { n: 'Interface web du NAS', s: 'WEB NAS', p: 'TCP', port: 5000, c: '#f0a35e' },
+  iscsi: { n: 'Cible iSCSI (stockage bloc)', s: 'iSCSI', p: 'TCP', port: 3260, c: '#e8b84a' },
+  admin: { n: "Interface d'administration web", s: 'ADMIN', p: 'TCP', port: 80, c: '#f0a35e', side: 'lan' },
+  vpn: { n: 'Serveur VPN WireGuard', s: 'VPN', p: 'UDP', port: 51820, c: '#ec3a8c', side: 'wan' },
+};
+const HTTPLIKE = new Set(['http', 'https', 'admin', 'nasweb', 'audio', 'video']);
+const MED = {
+  cu1g: { n: 'Cuivre RJ45 Cat 6 · 1 Gb/s', s: '1 Gb/s', c: '#5b95f0', w: 2.4, d: '', lat: .3 },
+  cu100h: { n: 'Cuivre RJ45 · 100 Mb/s half-duplex', s: '100 Mb/s ½', c: '#5b95f0', w: 1.6, d: '', lat: .6 },
+  cu10g: { n: 'Cuivre RJ45 Cat 6a · 10 Gb/s', s: '10 Gb/s', c: '#5b95f0', w: 3.6, d: '', lat: .2 },
+  fo10: { n: 'Fibre optique OM4 · 10 Gb/s', s: 'fibre 10 Gb/s', c: '#4fd1e0', w: 3, d: '', lat: .1 },
+  fo25: { n: 'Fibre optique OM4 · 25 Gb/s', s: 'fibre 25 Gb/s', c: '#4fd1e0', w: 3.8, d: '', lat: .1 },
+  ftth: { n: 'Fibre opérateur FTTH pro · 1 Gb/s', s: 'FTTH 1 Gb/s', c: '#9aa8ff', w: 4, d: '', lat: 5 },
+  home: { n: 'Fibre FTTH domicile · 500 Mb/s', s: 'FTTH 500 Mb/s', c: '#9aa8ff', w: 3.2, d: '', lat: 7 },
+  dc: { n: 'Fibre datacenter · 10 Gb/s', s: 'datacenter', c: '#9aa8ff', w: 4, d: '', lat: 4 },
+  g4: { n: 'Radio 4G/5G (opérateur mobile)', s: '4G / 5G', c: '#9aa8ff', w: 2.6, d: '8 5', lat: 26 },
+  wifi: { n: 'Wi-Fi 6 (802.11ax)', s: 'Wi-Fi 6', c: '#5b95f0', w: 2.2, d: '2 5', lat: 2 },
+};
+const TYPEX = {
+  pc: "Poste client : il consomme des services (web, fichiers, flux…) et peut lui aussi partager un dossier en SMB.",
+  laptop: "Ordinateur nomade sur un réseau extérieur. Son adresse privée n'est pas routée sur Internet : pour atteindre le LAN de l'entreprise, il monte un tunnel VPN vers le routeur.",
+  server: "Serveur : il écoute sur un ou plusieurs ports TCP/UDP. Il a une adresse IP fixe, pour que les clients et le DNS le retrouvent toujours au même endroit.",
+  www: "Serveur web public hébergé en datacenter, joignable par son adresse IP publique.",
+  nas: "NAS (Network Attached Storage) : stockage en mode FICHIER branché sur le LAN IP. Les postes y accèdent par SMB (Windows, macOS) ou NFS (Linux). Le NAS gère lui-même son système de fichiers.",
+  san: "SAN (Storage Area Network) : baie de stockage en mode BLOC sur un réseau dédié (ici iSCSI sur fibre 10/25 Gb/s). Le serveur voit un disque brut, la LUN, comme s'il était interne. Les postes clients n'y ont pas accès.",
+  switch: "Commutateur (couche 2) : il apprend quelle adresse MAC est branchée sur chaque port et n'envoie une trame que vers le bon port. Full-duplex, un domaine de collision par port.",
+  hub: "Concentrateur (couche 1) : il répète chaque signal électrique sur TOUS ses ports. Débit partagé, half-duplex, collisions possibles. Équipement obsolète, présent ici pour comparer avec le switch.",
+  router: "Routeur pare-feu (couche 3) : il relie le LAN privé à Internet, traduit les adresses (NAT), distribue les adresses (DHCP), filtre les ports entrants et termine les tunnels VPN.",
+  box: "Box d'accès : petit routeur domestique avec NAT, serveur DHCP et relais DNS. Le PC nomade reçoit d'elle une adresse privée.",
+  cloud: "Internet : maillage de routeurs d'opérateurs qui ne transportent que des adresses publiques. Les plages privées (10/8, 172.16/12, 192.168/16) y sont rejetées.",
+};
+const ROUTERS = new Set(['router', 'box', 'cloud']);
+const L2 = new Set(['switch', 'hub']);
+const HOSTS = new Set(['pc', 'laptop', 'server', 'www', 'nas', 'san']);
+const SUFFIX = 'entreprise.lan';
+const PUBLIC = { 'www.exemple.com': '192.0.2.80', 'exemple.com': '192.0.2.80', 'vpn.entreprise.fr': '203.0.113.10', 'www.entreprise.fr': '203.0.113.10', 'entreprise.fr': '203.0.113.10' };
+const ICO = '#d4d9de', DARK = '#121518';
+
+/* ===================== construction du réseau ===================== */
+let MACN = 0;
+function mkMac() { MACN++; const h = v => (v & 255).toString(16).padStart(2, '0'); return ['00', '1a', '2b', h(MACN * 53 + 7), h(MACN * 29 + 3), h(MACN)].join(':'); }
+function I(id, o) { return Object.assign({ id, mode: 'static', ip: '', cidr: 24, gw: '', dns: '', lease: null, apipa: null, mac: mkMac() }, o || {}); }
+function sv(k, on = true, o) { return Object.assign({ k, port: SVC[k].port, proto: SVC[k].p, on, side: SVC[k].side || 'all' }, o || {}); }
+let DEV = {}, LINKS = [];
+function buildNet() {
+  MACN = 0; const D = {};
+  const add = o => { D[o.id] = Object.assign({ svcs: [], shares: [], mounts: [], disks: [], ifs: [], os: 'linux', arp: {} }, o); };
+  const lan = (ip, o) => I('eth0', Object.assign({ ip, cidr: 24, gw: '192.168.10.1', dns: '192.168.10.53' }, o || {}));
+  const das = (n, cap, bus) => ({ t: 'DAS', n, cap, bus });
+  add({ id: 'pc1', type: 'pc', name: 'PC-01', x: 90, y: 86, os: 'win', role: 'Poste client · Windows', ifs: [lan('192.168.10.11')], svcs: [sv('smb', false)], shares: [{ name: 'Projets', on: false, files: ['devis_2026.xlsx', 'planning_tournage.pdf', 'storyboard_v3.png', 'notes_reunion.docx'] }], disks: [das('SSD NVMe interne', '512 Go', 'PCIe NVMe')] });
+  add({ id: 'pc2', type: 'pc', name: 'PC-02', x: 220, y: 86, os: 'win', role: 'Poste client · Windows', ifs: [lan('192.168.10.12')], svcs: [sv('smb', false)], shares: [{ name: 'Documents', on: false, files: ['cv_equipe.pdf', 'budget.xlsx'] }], disks: [das('SSD SATA interne', '1 To', 'SATA III')] });
+  add({ id: 'pc3', type: 'pc', name: 'PC-03', x: 340, y: 70, os: 'win', role: 'Poste client · branché sur le hub', ifs: [I('eth0', { mode: 'dhcp' })], disks: [das('Disque dur interne', '1 To', 'SATA III')] });
+  add({ id: 'pc4', type: 'pc', name: 'PC-04', x: 500, y: 70, os: 'win', role: 'Poste client · branché sur le hub', ifs: [I('eth0', { mode: 'dhcp' })], disks: [das('SSD SATA interne', '512 Go', 'SATA III')] });
+  add({ id: 'hub1', type: 'hub', name: 'HUB-01', x: 420, y: 170, role: 'Concentrateur 5 ports · 100 Mb/s partagés', os: 'none' });
+  add({ id: 'sw1', type: 'switch', name: 'SW-01', x: 540, y: 330, role: 'Commutateur 24 ports · 1 et 10 Gb/s', os: 'ios', mact: {} });
+  add({ id: 'dns', type: 'server', name: 'SRV-DNS', x: 90, y: 250, role: 'Serveur DNS · Linux', ifs: [lan('192.168.10.53')], svcs: [sv('dns'), sv('ssh')], disks: [das('SSD système', '240 Go', 'SATA')],
+    zone: [['routeur', '192.168.10.1'], ['srv-dns', '192.168.10.53'], ['srv-web', '192.168.10.20'], ['intranet', '192.168.10.20'], ['srv-ftp', '192.168.10.21'], ['ftp', '192.168.10.21'], ['srv-fichiers', '192.168.10.30'], ['srv-audio', '192.168.10.40'], ['radio', '192.168.10.40'], ['srv-video', '192.168.10.41'], ['video', '192.168.10.41'], ['srv-bdd', '192.168.10.42'], ['nas', '192.168.10.50'], ['pc-01', '192.168.10.11'], ['pc-02', '192.168.10.12']].map(([n, ip]) => ({ n, ip })) });
+  add({ id: 'web', type: 'server', name: 'SRV-WEB', x: 90, y: 370, role: 'Serveur web intranet · Linux', ifs: [lan('192.168.10.20')], svcs: [sv('http'), sv('https'), sv('ssh')], disks: [das('SSD RAID 1', '2 × 960 Go', 'SAS')] });
+  add({ id: 'ftp', type: 'server', name: 'SRV-FTP', x: 90, y: 490, role: 'Serveur FTP · Linux', ifs: [lan('192.168.10.21')], svcs: [sv('ftp'), sv('ssh')], disks: [das('Disque dur', '4 To', 'SATA')], ftpFiles: ['pub/', 'livrables/', 'film_final_v2.mp4', 'sous-titres_fr.srt', 'LISEZMOI.txt'] });
+  add({ id: 'fich', type: 'server', name: 'SRV-FICHIERS', x: 230, y: 560, role: 'Serveur de fichiers · Windows Server', os: 'win', ifs: [lan('192.168.10.30')], svcs: [sv('smb'), sv('ssh', false)],
+    shares: [{ name: 'Commun', on: true, files: ['charte_graphique.pdf', 'planning_2026.xlsx', 'logo_HD.png', 'modeles/'] }, { name: 'Projets', on: true, files: ['Projet_A/', 'Projet_B/', 'index_rushes.csv'] }, { name: 'RH', on: true, acl: "Seul le groupe RH a le droit d'accès : les autorisations NTFS refusent votre compte.", files: ['contrats/', 'paie_2026.xlsx'] }],
+    disks: [das('Grappe RAID 1', '2 × 4 To', 'SAS 12 Gb/s')] });
+  add({ id: 'audio', type: 'server', name: 'SRV-AUDIO', x: 370, y: 560, role: 'Serveur de flux audio · Linux', ifs: [lan('192.168.10.40')], svcs: [sv('audio'), sv('ssh')], disks: [das('Disque dur', '2 To', 'SATA')] });
+  add({ id: 'video', type: 'server', name: 'SRV-VIDÉO', x: 510, y: 560, role: 'Serveur de flux vidéo · Linux', ifs: [lan('192.168.10.41'), I('eth1', { ip: '10.0.50.21', cidr: 24 })], svcs: [sv('video'), sv('ssh')], disks: [das('SSD système', '480 Go', 'SATA')], iscsi: { disc: null, on: false } });
+  add({ id: 'bdd', type: 'server', name: 'SRV-BDD', x: 650, y: 560, role: 'Serveur de base de données · Linux', ifs: [lan('192.168.10.42'), I('eth1', { ip: '10.0.50.22', cidr: 24 })], svcs: [sv('mysql'), sv('ssh')], disks: [das('SSD système', '480 Go', 'SATA')], iscsi: { disc: null, on: false } });
+  add({ id: 'nas', type: 'nas', name: 'NAS-01', x: 680, y: 180, role: 'NAS 4 baies · stockage fichier', ifs: [lan('192.168.10.50')], svcs: [sv('smb'), sv('nfs'), sv('nasweb')],
+    shares: [{ name: 'Medias', on: true, files: ['rushes_J1.mxf', 'rushes_J2.mxf', 'musique_libre.wav', 'etalonnage/'] }, { name: 'Sauvegardes', on: true, files: ['srv-bdd_2026-10-03.sql.gz', 'pc-01_image.zip'] }],
+    disks: [{ t: 'NAS', n: 'Volume RAID 5', cap: '4 × 8 To (24 To utiles)', bus: 'SATA interne au NAS' }] });
+  add({ id: 'r1', type: 'router', name: 'RT-01', x: 790, y: 330, os: 'ios', role: 'Routeur pare-feu · NAT · DHCP · VPN',
+    ifs: [I('lan', { ip: '192.168.10.1', cidr: 24 }), I('wan', { ip: '203.0.113.10', cidr: 24, gw: '203.0.113.1' })],
+    svcs: [sv('admin'), sv('vpn')], nat: true, fw: { icmp: true },
+    dhcp: { on: true, start: '192.168.10.100', end: '192.168.10.150', dns: '192.168.10.53', leases: {} },
+    fwd: [{ n: 'Site web', on: false, proto: 'TCP', ext: 80, ip: '192.168.10.20', port: 80 }, { n: 'FTP', on: false, proto: 'TCP', ext: 21, ip: '192.168.10.21', port: 21 }],
+    vpnSrv: { ip: '10.8.0.1', net: '10.8.0.0' } });
+  add({ id: 'swsan', type: 'switch', name: 'SW-SAN', x: 570, y: 748, os: 'ios', role: 'Commutateur SAN · fibre 10/25 Gb/s', mact: {} });
+  add({ id: 'san', type: 'san', name: 'BAIE-SAN', x: 800, y: 752, role: 'Baie de stockage bloc · iSCSI', ifs: [I('eth0', { ip: '10.0.50.10', cidr: 24 })], svcs: [sv('iscsi')],
+    luns: [{ id: 0, n: 'LUN0 · données BDD', cap: '2 To', to: 'bdd' }, { id: 1, n: 'LUN1 · médias vidéo', cap: '8 To', to: 'video' }],
+    disks: [{ t: 'SAN', n: '24 disques SSD SAS', cap: '46 To bruts', bus: 'contrôleurs redondants' }] });
+  add({ id: 'cloud', type: 'cloud', name: 'INTERNET', x: 1000, y: 330, os: 'ios', hn: 'coeur.operateur.net', role: "Réseau public des opérateurs",
+    ifs: [I('c1', { ip: '203.0.113.1', cidr: 24 }), I('c2', { ip: '198.51.100.1', cidr: 24 }), I('c3', { ip: '192.0.2.1', cidr: 24 }), I('c4', { ip: '100.64.0.1', cidr: 10 })] });
+  add({ id: 'www', type: 'www', name: 'WWW.EXEMPLE.COM', x: 1000, y: 118, role: 'Serveur web public', ifs: [I('eth0', { ip: '192.0.2.80', cidr: 24, gw: '192.0.2.1' })], svcs: [sv('http'), sv('https')] });
+  add({ id: 'box1', type: 'box', name: 'BOX-MAISON', x: 1210, y: 205, os: 'ios', role: 'Box fibre du domicile', ifs: [I('lan', { ip: '192.168.1.1', cidr: 24 }), I('wan', { ip: '198.51.100.25', cidr: 24, gw: '198.51.100.1' })], svcs: [sv('dns', true, { side: 'lan' })], nat: true, dhcp: { on: true, start: '192.168.1.20', end: '192.168.1.60', dns: '192.168.1.1', leases: {} } });
+  add({ id: 'nomad1', type: 'laptop', name: 'NOMADE-01', x: 1350, y: 205, os: 'win', role: 'Portable en télétravail (Wi-Fi)', ifs: [I('wlan0', { mode: 'dhcp' })], vpn: { srv: 'vpn.entreprise.fr', port: 51820, up: false, tunIp: '10.8.0.2', srvIp: null }, disks: [das('SSD NVMe interne', '1 To', 'PCIe NVMe')] });
+  add({ id: 'box2', type: 'box', name: 'BOX-4G', x: 1210, y: 475, os: 'ios', role: 'Routeur 4G de chantier / hôtel', ifs: [I('lan', { ip: '192.168.0.1', cidr: 24 }), I('wan', { ip: '100.72.14.9', cidr: 10, gw: '100.64.0.1' })], svcs: [sv('dns', true, { side: 'lan' })], nat: true, dhcp: { on: true, start: '192.168.0.50', end: '192.168.0.80', dns: '192.168.0.1', leases: {} } });
+  add({ id: 'nomad2', type: 'laptop', name: 'NOMADE-02', x: 1350, y: 475, os: 'win', role: 'Portable en déplacement (4G)', ifs: [I('wlan0', { mode: 'dhcp' })], vpn: { srv: 'vpn.entreprise.fr', port: 51820, up: false, tunIp: '10.8.0.3', srvIp: null }, disks: [das('SSD NVMe interne', '512 Go', 'PCIe NVMe')] });
+  const L = [
+    ['pc1', 'eth0', 'sw1', 'Gi1/0/1', 'cu1g'], ['pc2', 'eth0', 'sw1', 'Gi1/0/2', 'cu1g'], ['hub1', 'up', 'sw1', 'Gi1/0/3', 'cu100h'],
+    ['pc3', 'eth0', 'hub1', 'p1', 'cu100h'], ['pc4', 'eth0', 'hub1', 'p2', 'cu100h'],
+    ['dns', 'eth0', 'sw1', 'Gi1/0/5', 'cu1g'], ['web', 'eth0', 'sw1', 'Gi1/0/6', 'cu1g'], ['ftp', 'eth0', 'sw1', 'Gi1/0/7', 'cu1g'],
+    ['fich', 'eth0', 'sw1', 'Te1/1/1', 'cu10g'], ['audio', 'eth0', 'sw1', 'Gi1/0/9', 'cu1g'], ['video', 'eth0', 'sw1', 'Te1/1/2', 'cu10g'],
+    ['bdd', 'eth0', 'sw1', 'Gi1/0/11', 'cu1g'], ['nas', 'eth0', 'sw1', 'Te1/1/3', 'cu10g'], ['r1', 'lan', 'sw1', 'Gi1/0/24', 'cu1g'],
+    ['video', 'eth1', 'swsan', 'Te0/1', 'fo10'], ['bdd', 'eth1', 'swsan', 'Te0/2', 'fo10'], ['san', 'eth0', 'swsan', 'Tf0/8', 'fo25'],
+    ['r1', 'wan', 'cloud', 'c1', 'ftth'], ['www', 'eth0', 'cloud', 'c3', 'dc'], ['box1', 'wan', 'cloud', 'c2', 'home'], ['nomad1', 'wlan0', 'box1', 'lan', 'wifi'],
+    ['box2', 'wan', 'cloud', 'c4', 'g4'], ['nomad2', 'wlan0', 'box2', 'lan', 'wifi'],
+  ].map(([a, ai, b, bi, m]) => ({ a, ai, b, bi, m, up: true }));
+  DEV = D; LINKS = L;
+  for (const id of ['pc3', 'pc4', 'nomad1', 'nomad2']) doDhcp(id, DEV[id].ifs[0], true);
+}
+
+/* ===================== moteur réseau ===================== */
+const ifObj = (d, fid) => d.ifs.find(f => f.id === fid);
+function addrOf(d, f) {
+  if (!f) return null;
+  if (f.mode === 'dhcp') return f.lease || f.apipa || null;
+  return ip2n(f.ip) != null ? { ip: f.ip, cidr: f.cidr, gw: f.gw, dns: f.dns } : null;
+}
+function firstAddr(d) { for (const f of d.ifs) { const a = addrOf(d, f); if (a) return a; } return null; }
+function firstDns(d) { if (d.tun) return d.tun.dns; for (const f of d.ifs) { const a = addrOf(d, f); if (a && a.dns && ip2n(a.dns) != null) return a.dns; } return null; }
+const linkAt = (id, fid) => LINKS.find(l => (l.a === id && l.ai === fid) || (l.b === id && l.bi === fid));
+const other = (l, id) => l.a === id ? { d: l.b, f: l.bi } : { d: l.a, f: l.ai };
+const linkUp = (id, fid) => { const l = linkAt(id, fid); return !!(l && l.up); };
+const linkBetween = (a, b) => LINKS.find(l => (l.a === a && l.b === b) || (l.a === b && l.b === a));
+const svcOn = (d, k) => (d.svcs || []).some(s => s.k === k && s.on);
+function domain(id, fid) {
+  const res = [{ d: id, f: fid }]; const l0 = linkAt(id, fid); if (!l0 || !l0.up) return res;
+  const o = other(l0, id); if (!L2.has(DEV[o.d].type)) { res.push(o); return res; }
+  const seen = new Set([o.d]), q = [o.d];
+  while (q.length) {
+    const s = q.shift();
+    for (const l of LINKS) {
+      if (!l.up || (l.a !== s && l.b !== s)) continue;
+      const x = other(l, s); if (x.d === id && x.f === fid) continue;
+      if (L2.has(DEV[x.d].type)) { if (!seen.has(x.d)) { seen.add(x.d); q.push(x.d); } } else res.push(x);
+    }
+  }
+  return res;
+}
+function l2path(id, fid, to) {
+  const l0 = linkAt(id, fid); if (!l0) return [id, to]; const o = other(l0, id).d; if (o === to) return [id, to];
+  const prev = { [o]: id }, q = [o];
+  while (q.length) {
+    const s = q.shift();
+    for (const l of LINKS) {
+      if (!l.up || (l.a !== s && l.b !== s)) continue; const x = other(l, s).d; if (x in prev || x === id) continue;
+      if (x === to) { prev[x] = s; const p = [x]; let c = x; while (c !== id) { c = prev[c]; p.unshift(c); } return p; }
+      if (L2.has(DEV[x].type)) { prev[x] = s; q.push(x); }
+    }
+  }
+  return [id, to];
+}
+function ownsIp(d, ip) {
+  if (String(ip).startsWith('127.')) return true;
+  for (const f of d.ifs) { const a = addrOf(d, f); if (a && a.ip === ip) return true; }
+  if (d.tun && d.tun.ip === ip) return true;
+  if (d.vpnSrv && svcOn(d, 'vpn') && d.vpnSrv.ip === ip) return true;
+  return false;
+}
+function egress(d, dst, o) {
+  for (const f of d.ifs) { const a = addrOf(d, f); if (a && sameNet(a.ip, a.cidr, dst)) return { k: 'direct', f, a, src: a.ip }; }
+  if (d.tun && !o.noVpn && (sameNet('192.168.10.0', 24, dst) || sameNet('10.8.0.0', 24, dst))) return { k: 'tun' };
+  if (d.vpnSrv && svcOn(d, 'vpn') && sameNet(d.vpnSrv.net, 24, dst)) {
+    const peer = Object.values(DEV).find(x => x.tun && x.tun.ip === dst);
+    if (peer) return { k: 'rtun', peer };
+    return { k: 'drop', why: `Aucun client VPN connecté avec l'adresse ${dst}` };
+  }
+  if (d.type === 'cloud') return { k: 'drop', why: isPriv(dst) ? `Adresse privée ${dst} : les routeurs d'Internet la rejettent (non routable)` : `Réseau de destination ${dst} inconnu sur Internet` };
+  for (const f of d.ifs) {
+    const a = addrOf(d, f);
+    if (a && a.gw && ip2n(a.gw) != null) {
+      if (!sameNet(a.ip, a.cidr, a.gw)) return { k: 'drop', why: `La passerelle ${a.gw} n'est pas dans le sous-réseau ${netLbl(a)} de ${f.id}` };
+      return { k: 'gw', f, a, src: a.ip, gw: a.gw };
+    }
+  }
+  return { k: 'drop', why: `Aucune route vers ${dst} : pas de passerelle par défaut sur ${d.name}`, noroute: true };
+}
+let FLIP = 0;
+function l3path(srcId, dst, o = {}) {
+  const R = { ok: false, hops: [], segs: [], src: srcId, dst, srcIp: null, src0: null, nat: [], vpn: null, notes: [], inIf: null, firstMac: null };
+  if (ip2n(dst) == null) { R.why = `Adresse IPv4 invalide : ${dst}`; R.kind = 'noroute'; return R; }
+  let cur = srcId;
+  for (let guard = 0; guard < 14; guard++) {
+    const d = DEV[cur];
+    if (ownsIp(d, dst)) { R.ok = true; R.owner = d; if (!R.srcIp) { R.srcIp = dst; R.src0 = dst; } return R; }
+    if (cur !== srcId && !ROUTERS.has(d.type)) { R.why = `${d.name} n'est pas un routeur : il ne retransmet pas le paquet`; R.kind = 'timeout'; return R; }
+    const e = egress(d, dst, o);
+    if (e.k === 'drop') { R.why = e.why; R.kind = cur === srcId ? 'noroute' : 'timeout'; R.by = cur; return R; }
+    if (e.k === 'tun') {
+      const u = vpnUnder(d); if (!u.ok) { R.why = 'Tunnel VPN rompu : ' + u.why; R.kind = 'timeout'; return R; }
+      R.segs.push(...u.c.segs.map(s => Object.assign({}, s, { tun: true })));
+      if (!R.srcIp) { R.srcIp = d.tun.ip; R.src0 = d.tun.ip; }
+      R.vpn = { outerSrc: u.c.r.srcIp, outerDst: u.ip, port: u.port, peer: d.id };
+      const srv = u.c.owner; R.hops.push({ id: srv.id, ip: srv.vpnSrv.ip, tun: true, lat: segLat(R.segs) }); R.inIf = 'tun'; cur = srv.id; continue;
+    }
+    if (e.k === 'rtun') {
+      const u = vpnUnder(e.peer); if (!u.ok) { R.why = 'Tunnel VPN rompu : ' + u.why; R.kind = 'timeout'; return R; }
+      if (!R.srcIp) { R.srcIp = d.vpnSrv.ip; R.src0 = R.srcIp; }
+      R.segs.push(...u.c.segs.slice().reverse().map(s => ({ nodes: s.nodes.slice().reverse(), tun: true })));
+      if (!R.vpn) R.vpn = { outerSrc: u.ip, outerDst: u.c.r.srcIp, port: u.port, peer: e.peer.id, rev: true };
+      R.hops.push({ id: e.peer.id, ip: dst, tun: true, lat: segLat(R.segs) }); R.inIf = 'tun'; cur = e.peer.id; continue;
+    }
+    if (!R.srcIp) { R.srcIp = e.src; R.src0 = e.src; }
+    if (d.nat && e.f.id === 'wan' && isPriv(R.srcIp)) { const wa = addrOf(d, e.f); R.nat.push({ dev: d.id, from: R.srcIp, to: wa.ip }); R.srcIp = wa.ip; }
+    const nh = e.k === 'direct' ? dst : e.gw;
+    if (!linkUp(cur, e.f.id)) { R.why = `Câble débranché sur ${d.name} (${e.f.id})`; R.kind = cur === srcId ? 'media' : 'timeout'; return R; }
+    const c = domain(cur, e.f.id).filter(x => x.d !== cur && (() => { const a = addrOf(DEV[x.d], ifObj(DEV[x.d], x.f)); return a && a.ip === nh; })());
+    if (!c.length) {
+      R.why = e.k === 'direct' ? `Aucun équipement ne répond à la requête ARP « qui a ${nh} ? » sur ce réseau` : `Passerelle ${nh} introuvable : aucune réponse ARP sur le réseau de ${d.name}`;
+      R.kind = cur === srcId && e.k === 'gw' ? 'timeout' : 'unreach'; R.byIp = e.src; R.by = cur; return R;
+    }
+    let pick = c[0];
+    if (c.length > 1) { FLIP++; pick = c[FLIP % c.length]; R.notes.push({ conflict: nh, devs: c.map(x => x.d), pick: pick.d }); }
+    const pf = ifObj(DEV[pick.d], pick.f);
+    d.arp[nh] = { mac: pf.mac, f: e.f.id }; DEV[pick.d].arp[e.src] = { mac: e.f.mac, f: pick.f };
+    const nodes = l2path(cur, e.f.id, pick.d);
+    const seg = { nodes, srcMac: e.f.mac, dstMac: pf.mac };
+    learnSeg(seg); R.segs.push(seg);
+    if (!R.firstMac) R.firstMac = { src: e.f.mac, dst: pf.mac, dstName: DEV[pick.d].name, gw: e.k === 'gw' };
+    R.hops.push({ id: pick.d, ip: nh, lat: segLat(R.segs) }); R.inIf = pick.f; cur = pick.d;
+  }
+  R.why = 'TTL expiré : boucle de routage'; R.kind = 'timeout'; return R;
+}
+function learnSeg(s) {
+  const n = s.nodes;
+  for (let i = 1; i < n.length - 1; i++) {
+    const sw = DEV[n[i]]; if (sw.type !== 'switch') continue;
+    const pIn = linkBetween(n[i], n[i - 1]), pOut = linkBetween(n[i], n[i + 1]);
+    const port = l => l ? (l.a === n[i] ? l.ai : l.bi) : '?';
+    sw.mact[s.srcMac] = { port: port(pIn), who: DEV[n[0]].name, t: Date.now() };
+    sw.mact[s.dstMac] = { port: port(pOut), who: DEV[n[n.length - 1]].name, t: Date.now() };
+  }
+}
+function segLat(segs) { let t = 0; for (const s of segs) for (let i = 1; i < s.nodes.length; i++) { const l = linkBetween(s.nodes[i - 1], s.nodes[i]); if (l) t += MED[l.m].lat; } return t; }
+function vpnUnder(d) {
+  const v = d.vpn; if (!v || !v.srvIp) return { ok: false, why: 'tunnel non configuré' };
+  const c = netReach(d.id, v.srvIp, v.port, 'UDP', { noVpn: true });
+  if (!c.ok) return { ok: false, why: c.why };
+  return { ok: true, c, ip: v.srvIp, port: v.port };
+}
+function sideOk(s, inIf) { if (!inIf || s.side === 'all') return true; if (inIf === 'tun') return s.side !== 'wan'; return s.side === inIf; }
+function netReach(srcId, ip, port, proto, o = {}) {
+  const r = l3path(srcId, ip, o);
+  if (!r.ok) return { ok: false, code: (r.kind === 'unreach' || r.kind === 'noroute' || r.kind === 'media') ? r.kind : 'timeout', why: r.why, r, segs: r.segs };
+  let owner = r.owner, dport = +port, fwd = null; const segs = r.segs.slice(); let inIf = r.inIf;
+  if (ROUTERS.has(owner.type) && inIf === 'wan') {
+    const s = owner.svcs.find(s => s.on && s.proto === proto && +s.port === dport && sideOk(s, 'wan'));
+    if (!s) {
+      const f = (owner.fwd || []).find(f => f.on && f.proto === proto && +f.ext === dport);
+      if (!f) return { ok: false, code: 'filtered', why: `Le pare-feu de ${owner.name} bloque ${proto} ${dport} venant d'Internet (aucune redirection de port)`, r, segs, owner };
+      const r2 = l3path(owner.id, f.ip);
+      if (!r2.ok) return { ok: false, code: 'timeout', why: `Redirection vers ${f.ip} impossible : ${r2.why}`, r, segs, owner };
+      segs.push(...r2.segs); r.hops.push(...r2.hops); fwd = { dev: owner.id, ext: dport, ip: f.ip, port: +f.port };
+      owner = r2.owner; dport = +f.port; inIf = r2.inIf;
+    }
+  }
+  const svc = (owner.svcs || []).find(s => s.on && s.proto === proto && +s.port === dport && sideOk(s, inIf));
+  const back = l3path(owner.id, r.srcIp, o);
+  if (!svc) return { ok: false, code: proto === 'UDP' ? 'timeout' : 'refused', why: `Aucun service n'écoute sur ${proto} ${dport} de ${owner.name}${proto === 'UDP' ? ' (UDP ne répond pas)' : ' : le système renvoie un TCP RST'}`, r, owner, segs, back, dport };
+  if (!back.ok) return { ok: false, code: 'timeout', why: `La demande arrive à ${owner.name}, mais la réponse se perd : ${back.why}`, r, owner, segs, svc };
+  return { ok: true, svc, owner, dport, fwd, r, segs, back };
+}
+function resolve(id, name, o = {}) {
+  name = String(name || '').trim().toLowerCase().replace(/\.$/, '');
+  if (ip2n(name) != null) return { ok: true, ip: name, lit: true };
+  if (name === 'localhost') return { ok: true, ip: '127.0.0.1', lit: true };
+  const d = DEV[id], hn = d.name.toLowerCase();
+  if (name === hn || name === hn + '.' + SUFFIX) { const a = firstAddr(d); return { ok: true, ip: a ? a.ip : '127.0.0.1', lit: true }; }
+  const dns = (d.tun && !o.noVpn) ? d.tun.dns : (() => { for (const f of d.ifs) { const a = addrOf(d, f); if (a && a.dns && ip2n(a.dns) != null) return a.dns; } return null; })();
+  if (!dns) return { ok: false, why: `Aucun serveur DNS configuré sur ${d.name}` };
+  const c = netReach(id, dns, 53, 'UDP', o);
+  if (!c.ok) return { ok: false, why: `Serveur DNS ${dns} injoignable sur UDP 53 · ${c.why}`, c, dns };
+  return Object.assign({ dns, server: c.owner, c }, dnsAnswer(c.owner, name));
+}
+function dnsAnswer(srv, name) {
+  const full = name.includes('.') ? name : name + '.' + SUFFIX;
+  if (srv.zone) {
+    if (full.endsWith('.' + SUFFIX)) {
+      const short = full.slice(0, -SUFFIX.length - 1), rec = srv.zone.find(z => z.n === short);
+      return rec ? { ok: true, ip: rec.ip, fqdn: full, auth: true } : { ok: false, why: `${full} : nom inexistant (NXDOMAIN) dans la zone ${SUFFIX}` };
+    }
+    const f = l3path(srv.id, '192.0.2.80'); if (!f.ok) return { ok: false, why: `${srv.name} ne joint pas Internet pour résoudre ${name} (SERVFAIL)` };
+  } else if (full.endsWith('.' + SUFFIX)) return { ok: false, why: `${full} : inconnu du DNS public. La zone ${SUFFIX} n'existe que sur le DNS interne de l'entreprise` };
+  const p = PUBLIC[name];
+  return p ? { ok: true, ip: p, fqdn: name } : { ok: false, why: `${name} : nom inexistant (NXDOMAIN)` };
+}
+function doDhcp(id, f, silent) {
+  const d = DEV[id];
+  if (!linkUp(id, f.id)) { f.lease = null; f.apipa = null; return { ok: false, why: 'Média déconnecté : câble ou Wi-Fi absent' }; }
+  const dom = domain(id, f.id);
+  const srvE = dom.find(x => x.d !== id && DEV[x.d].dhcp && DEV[x.d].dhcp.on && x.f === 'lan');
+  if (!silent) broadcastAnim(id, f.id);
+  if (!srvE) {
+    const r = (id.charCodeAt(id.length - 1) * 37) % 250 + 2;
+    f.lease = null; f.apipa = { ip: `169.254.${r}.${(r * 7) % 250 + 3}`, cidr: 16, gw: '', dns: '', auto: true };
+    return { ok: false, apipa: true, why: 'Aucun serveur DHCP n’a répondu au DHCPDISCOVER' };
+  }
+  const s = DEV[srvE.d], sa = addrOf(s, ifObj(s, 'lan')), P = s.dhcp;
+  const used = new Set(); for (const x of dom) { if (x.d === id) continue; const a = addrOf(DEV[x.d], ifObj(DEV[x.d], x.f)); if (a) used.add(a.ip); }
+  let ip = null; const a0 = ip2n(P.start), a1 = ip2n(P.end);
+  if (a0 == null || a1 == null || a1 < a0) return { ok: false, why: 'Plage DHCP invalide sur ' + s.name };
+  if (f.lease && ip2n(f.lease.ip) >= a0 && ip2n(f.lease.ip) <= a1 && !used.has(f.lease.ip) && f.lease.server === sa.ip) ip = f.lease.ip;
+  for (let n = a0; !ip && n <= a1; n++) { const c = n2ip(n); const holder = Object.keys(P.leases).find(m => P.leases[m].ip === c); if (!used.has(c) && (!holder || holder === f.mac)) ip = c; }
+  if (!ip) return { ok: false, why: 'Plage DHCP épuisée' };
+  f.lease = { ip, cidr: sa.cidr, gw: sa.ip, dns: P.dns, server: sa.ip, t: Date.now() }; f.apipa = null;
+  P.leases[f.mac] = { ip, host: d.name, t: Date.now() };
+  if (!silent) { const p = l2path(srvE.d, 'lan', id); anim(p.map(n => ({ n })), 'l2', 'DHCP ACK'); }
+  return { ok: true, ip, srv: s };
+}
+function conflicts() {
+  const L = []; for (const d of Object.values(DEV)) for (const f of d.ifs) { const a = addrOf(d, f); if (a && !a.ip.startsWith('169.254')) L.push({ d: d.id, f: f.id, ip: a.ip }); }
+  const C = {};
+  for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (L[i].ip === L[j].ip && L[i].d !== L[j].d) {
+    if (domain(L[i].d, L[i].f).some(x => x.d === L[j].d && x.f === L[j].f)) { C[L[i].d] = L[i].ip; C[L[j].d] = L[i].ip; }
+  }
+  return C;
+}
+function pathNodes(segs) { const out = []; for (const s of segs || []) s.nodes.forEach((n, i) => { if (i === 0 && out.length && out[out.length - 1].n === n) return; out.push({ n, tun: !!s.tun }); }); return out; }
+function mediaList(segs) { const m = []; for (const s of segs || []) for (let i = 1; i < s.nodes.length; i++) { const l = linkBetween(s.nodes[i - 1], s.nodes[i]); if (!l) continue; const t = (s.tun ? '🔒 ' : '') + MED[l.m].n; if (m[m.length - 1] !== t) m.push(t); } return m; }
+const ttlBase = o => o.os === 'win' ? 128 : (ROUTERS.has(o.type) || o.os === 'ios') ? 255 : 64;
+const routerHops = r => r ? r.hops.filter(h => h.id !== (r.owner && r.owner.id) && ROUTERS.has(DEV[h.id].type)).length : 0;
+const eph = () => 49152 + Math.floor(Math.random() * 16000);
+
+/* ===================== animation des paquets ===================== */
+const NS = 'http://www.w3.org/2000/svg';
+const AQ = []; let ABusy = false;
+function colFor(kind, tun) {
+  if (tun) return '#ec3a8c';
+  if (S.view === 'phy') return '#5b95f0';
+  if (S.view === 'log') return '#86e0a2';
+  if (kind === 'icmp') return S.view === 'app' ? '#e8b84a' : '#86e0a2';
+  if (kind === 'l2') return S.view === 'app' ? '#e8b84a' : '#5b95f0';
+  return (SVC[kind] || {}).c || '#e8b84a';
+}
+function anim(list, kind, label) { if (REDUCED || !list || list.length < 2) return; if (AQ.length > 8) AQ.length = 0; AQ.push({ list, kind, label }); if (!ABusy) nextA(); }
+function nextA() { const a = AQ.shift(); if (!a) { ABusy = false; return; } ABusy = true; play(a, nextA); }
+function mk(tag, at) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); return e; }
+function play(a, done, fast) {
+  const g = $('#gA'), pts = a.list.map(o => ({ x: DEV[o.n].x, y: DEV[o.n].y, n: o.n, tun: o.tun }));
+  const segL = []; let tot = 0; for (let i = 1; i < pts.length; i++) { const L = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); segL.push(L); tot += L; }
+  const dur = clamp(tot / (fast ? 1.3 : 0.75), 350, 2600);
+  const halo = mk('circle', { r: 13, opacity: .25 }), c = mk('circle', { r: 6.5, stroke: '#0a0c0e', 'stroke-width': 2 }), tx = mk('text', { 'font-size': 11, class: 'halo', 'text-anchor': 'middle' });
+  tx.textContent = a.label || ''; g.append(halo, c, tx);
+  const spawned = new Set(), t0 = performance.now();
+  function step(now) {
+    const k = clamp((now - t0) / dur, 0, 1); let dist = k * tot, i = 0;
+    while (i < segL.length - 1 && dist > segL[i]) { dist -= segL[i]; i++; }
+    const f = segL[i] ? Math.min(dist / segL[i], 1) : 1, p = pts[i], q = pts[i + 1] || p;
+    const x = p.x + (q.x - p.x) * f, y = p.y + (q.y - p.y) * f, col = colFor(a.kind, q.tun);
+    for (const e of [halo, c]) { e.setAttribute('cx', x); e.setAttribute('cy', y); e.setAttribute('fill', col); }
+    tx.setAttribute('x', x); tx.setAttribute('y', y - 14); tx.setAttribute('fill', col);
+    for (let j = 1; j <= i; j++) if (DEV[pts[j].n].type === 'hub' && !spawned.has(j) && pts[j + 1]) { spawned.add(j); hubFlood(pts[j].n, pts[j - 1].n, pts[j + 1].n, col); }
+    if (k < 1) requestAnimationFrame(step); else { halo.remove(); c.remove(); tx.remove(); done && done(); }
+  }
+  requestAnimationFrame(step);
+}
+function hubFlood(hub, from, to, col) {
+  for (const l of LINKS) {
+    if (!l.up || (l.a !== hub && l.b !== hub)) continue; const nb = other(l, hub).d; if (nb === from || nb === to) continue;
+    play({ list: [{ n: hub }, { n: nb }], kind: 'l2', label: 'copie' }, () => {
+      const t = mk('text', { x: DEV[nb].x + 22, y: DEV[nb].y - 30, fill: '#ef6b6b', 'font-size': 11, class: 'halo tu' }); t.textContent = 'trame ignorée ✕'; $('#gA').append(t); setTimeout(() => t.remove(), 1400);
+    }, true);
+  }
+}
+function broadcastAnim(id, fid) {
+  if (REDUCED) return;
+  for (const x of domain(id, fid)) { if (x.d === id) continue; const p = l2path(id, fid, x.d); play({ list: p.map(n => ({ n })), kind: 'l2', label: 'diffusion' }, null, true); }
+}
+function animDns(res) { if (!res || !res.c || !res.c.r) return; anim(pathNodes(res.c.r.segs), 'dns', 'DNS ?'); if (res.c.ok && res.c.back) anim(pathNodes(res.c.back.segs), 'dns', 'DNS ✓'); }
+
+/* ===================== état, événements, dernier échange ===================== */
+const S = { view: 'all', sel: 'pc1', active: 'pc1' };
+let EVT = [], LAST = null, TERM = {}, BR = {};
+function ev(t, o) { EVT.push(Object.assign({ t, at: Date.now() }, o || {})); }
+function lastFrom(r, x) {
+  r = r || { segs: [] };
+  return Object.assign({ src: r.src ? DEV[r.src].name : '', srcIp: r.src0, dstIp: r.dst, natIp: r.srcIp, mac: r.firstMac, media: mediaList(r.segs), nat: r.nat || [], vpn: r.vpn, path: pathNodes(r.segs), hops: r.hops || [] }, x);
+}
+function setLast(o) { LAST = o; drawEnc(); }
+
+/* ===================== terminal ===================== */
+function TT(id) { if (!TERM[id]) { TERM[id] = { lines: [], hist: [], hi: 0 }; const d = DEV[id]; out(id, `${d.name} · ${d.role}`, 'in'); out(id, 'Tapez « aide » pour la liste des commandes.', 'mu'); } return TERM[id]; }
+function out(id, t, c) { const T = TERM[id] || TT(id); T.lines.push([t, c || '']); if (T.lines.length > 500) T.lines.splice(0, 100); }
+function promptOf(d) { return d.os === 'win' ? 'C:\\Users\\etudiant>' : d.os === 'ios' ? d.name + '#' : `root@${d.name.toLowerCase()}:~#`; }
+const normL = s => /^[a-z]:?$/i.test(s) ? s[0].toUpperCase() + ':' : s;
+function hashN(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+function run(id, line) {
+  const d = DEV[id]; TT(id);
+  out(id, promptOf(d) + ' ' + line, 'cl');
+  const a = line.trim().split(/\s+/).filter(Boolean);
+  if (a.length) {
+    const T = TERM[id]; T.hist.push(line); T.hi = T.hist.length;
+    const c = a[0].toLowerCase(), fn = CMDS[c];
+    if (!fn) out(id, `« ${a[0]} » n'est pas reconnu en tant que commande. Tapez « aide ».`, 'er');
+    else try { fn(id, a.slice(1), line); } catch (e) { out(id, 'Erreur interne : ' + e.message, 'er'); }
+  }
+  render();
+}
+function ipconfigOut(id, all) {
+  const d = DEV[id];
+  if (d.os !== 'win') {
+    out(id, '1: lo: <LOOPBACK,UP> mtu 65536'); out(id, '    inet 127.0.0.1/8 scope host lo', 'mu');
+    d.ifs.forEach((f, i) => { const a = addrOf(d, f), up = linkUp(id, f.id);
+      out(id, `${i + 2}: ${f.id}: <BROADCAST,MULTICAST${up ? ',UP,LOWER_UP' : ''}> mtu 1500 state ${up ? 'UP' : 'DOWN'}`, up ? '' : 'er');
+      out(id, `    link/ether ${f.mac} brd ff:ff:ff:ff:ff:ff`, 'bl');
+      if (a) out(id, `    inet ${a.ip}/${a.cidr} brd ${n2ip(bcastN(a.ip, a.cidr))} scope global ${f.id}${f.mode === 'dhcp' ? ' dynamic' : ''}`, 'ok'); });
+    for (const f of d.ifs) { const a = addrOf(d, f); if (a && a.gw) out(id, `default via ${a.gw} dev ${f.id}`, 'ok'); }
+    return;
+  }
+  out(id, ''); out(id, 'Configuration IP de Windows'); if (all) { out(id, `   Nom de l'hôte . . . . . . . . . . : ${d.name.toLowerCase()}`); out(id, `   Suffixe DNS principal . . . . . . : ${SUFFIX}`); }
+  for (const f of d.ifs) {
+    const a = addrOf(d, f), up = linkUp(id, f.id), l = linkAt(id, f.id);
+    out(id, ''); out(id, `Carte ${l && l.m === 'wifi' ? 'réseau sans fil Wi-Fi' : 'Ethernet'} ${f.id} :`, 'in'); out(id, '');
+    if (!up) { out(id, '   Statut du média. . . . . . . . . . : Média déconnecté', 'er'); continue; }
+    if (all) { out(id, `   Adresse physique . . . . . . . . . : ${f.mac.toUpperCase().replace(/:/g, '-')}`, 'bl'); out(id, `   DHCP activé. . . . . . . . . . . . : ${f.mode === 'dhcp' ? 'Oui' : 'Non'}`); }
+    if (!a) { out(id, '   (aucune adresse IPv4 : bail DHCP libéré)', 'wa'); continue; }
+    if (a.auto) out(id, `   Adresse IPv4 de configuration automatique : ${a.ip} (APIPA)`, 'wa'); else out(id, `   Adresse IPv4. . . . . . . . . . . . : ${a.ip}`, 'ok');
+    out(id, `   Masque de sous-réseau. . . . . . . : ${maskStr(a.cidr)}`, 'ok');
+    out(id, `   Passerelle par défaut. . . . . . . : ${a.gw || ''}`, 'ok');
+    if (all) {
+      if (f.mode === 'dhcp' && f.lease) { out(id, `   Serveur DHCP . . . . . . . . . . . : ${f.lease.server}`); out(id, `   Bail obtenu. . . . . . . . . . . . : ${new Date(f.lease.t).toLocaleString('fr-FR')}`); out(id, `   Bail expirant. . . . . . . . . . . : ${new Date(f.lease.t + 86400000).toLocaleString('fr-FR')}`); }
+      out(id, `   Serveurs DNS. . . . . . . . . . . : ${a.dns || ''}`);
+    }
+  }
+  if (d.tun) { out(id, ''); out(id, 'Carte inconnue tun0 (WireGuard) :', 'vp'); out(id, ''); out(id, `   Adresse IPv4. . . . . . . . . . . . : ${d.tun.ip}`, 'vp'); out(id, '   Masque de sous-réseau. . . . . . . : 255.255.255.0', 'vp'); out(id, '   Passerelle par défaut. . . . . . . :', 'vp'); out(id, `   Serveurs DNS. . . . . . . . . . . : ${d.tun.dns}`, 'vp'); out(id, '   Routes poussées par le VPN : 192.168.10.0/24, 10.8.0.0/24', 'mu'); }
+}
+function routerIfOut(id) {
+  const d = DEV[id]; out(id, 'Interface      Adresse IP        Masque  État   Protocole', 'mu');
+  for (const f of d.ifs) { const a = addrOf(d, f), up = linkUp(id, f.id); out(id, `${f.id.padEnd(14)} ${(a ? a.ip : 'non attribuée').padEnd(17)} /${a ? a.cidr : '--'}     ${up ? 'up  ' : 'down'}   ${up ? 'up' : 'down'}`, up ? 'ok' : 'er'); }
+  if (d.vpnSrv && svcOn(d, 'vpn')) out(id, `wg0            ${d.vpnSrv.ip.padEnd(17)} /24     up     up`, 'vp');
+}
+function cmdPing(id, args) {
+  let n = 4, target = null;
+  for (let i = 0; i < args.length; i++) { const x = args[i]; if (x === '-n' || x === '-c') n = clamp(parseInt(args[++i]) || 4, 1, 10); else if (!x.startsWith('-')) target = x; }
+  if (!target) { out(id, 'Utilisation : ping <adresse IP ou nom> [-n nombre]', 'mu'); return; }
+  const res = resolve(id, target);
+  if (!res.ok) { out(id, `La requête Ping n'a pas pu trouver l'hôte ${target}. Vérifiez le nom et essayez à nouveau.`, 'er'); out(id, '↳ ' + res.why, 'mu'); animDns(res); ev('ping', { src: id, dst: null, ok: false }); setLast(lastFrom(res.c && res.c.r, { ok: false, title: 'Résolution DNS de ' + target, l4: 'UDP · port source éphémère → 53', l7: `DNS · requête A « ${target} »`, result: res.why })); return; }
+  if (!res.lit) animDns(res);
+  const ip = res.ip;
+  out(id, res.lit ? `Envoi d'une requête « Ping » ${ip} avec 32 octets de données :` : `Envoi d'une requête « ping » sur ${res.fqdn || target} [${ip}] avec 32 octets de données :`);
+  const r = l3path(id, ip);
+  let ok = r.ok, back = null, why = r.why, kind = r.kind;
+  if (ok) {
+    const o = r.owner;
+    if (ROUTERS.has(o.type) && r.inIf === 'wan' && o.fw && !o.fw.icmp) { ok = false; kind = 'timeout'; why = `Le pare-feu de ${o.name} ignore les pings venant d'Internet`; }
+    else { back = l3path(o.id, r.srcIp); if (!back.ok) { ok = false; kind = 'timeout'; why = `La demande arrive à ${o.name}, mais la réponse se perd : ${back.why}`; } }
+  }
+  if (ok) {
+    const ttl = ttlBase(r.owner) - routerHops(back), one = segLat(r.segs) + segLat(back.segs);
+    for (let i = 0; i < n; i++) { const ms = one * (1 + Math.random() * .25) + (i === 0 ? .4 : 0); out(id, `Réponse de ${ip} : octets=32 temps${ms < 1 ? '<1' : '=' + Math.round(ms)} ms TTL=${ttl}`, 'ok'); }
+  } else for (let i = 0; i < n; i++) {
+    if (kind === 'media') out(id, 'Échec de la transmission. Défaillance générale.', 'er');
+    else if (kind === 'unreach' && r.byIp) out(id, `Réponse de ${r.byIp} : Impossible de joindre l'hôte de destination.`, 'er');
+    else if (kind === 'noroute') out(id, 'Échec de la transmission. Le réseau de destination est inaccessible.', 'er');
+    else out(id, "Délai d'attente de la demande dépassé.", 'er');
+  }
+  const rec = ok || kind === 'unreach' ? n : 0;
+  out(id, ''); out(id, `Statistiques Ping pour ${ip}:`); out(id, `    Paquets : envoyés = ${n}, reçus = ${rec}, perdus = ${n - rec} (${Math.round((n - rec) / n * 100)} % de perte)`, ok ? '' : 'er');
+  if (!ok) out(id, '↳ ' + why, 'mu');
+  for (const nt of r.notes) if (nt.conflict) out(id, `⚠ Conflit d'adresses IP : ${nt.devs.map(x => DEV[x].name).join(' et ')} utilisent ${nt.conflict}. Cette fois, c'est ${DEV[nt.pick].name} qui a répondu à l'ARP.`, 'wa');
+  if (r.nat.length) out(id, `↳ NAT : ${r.nat.map(x => `${DEV[x.dev].name} ${x.from} → ${x.to}`).join(' · ')}`, 'mu');
+  if (r.vpn) out(id, `↳ Paquet encapsulé dans le tunnel VPN (UDP ${r.vpn.port})`, 'vp');
+  anim(pathNodes(r.segs), 'icmp', 'ICMP echo'); if (ok) anim(pathNodes(back.segs), 'icmp', 'ICMP reply');
+  setLast(lastFrom(r, { ok, title: `ping ${target}`, ttl: ok ? ttlBase(r.owner) : 128, l4: "Aucun port : ICMP est transporté directement dans IP (couche 3)", l7: `ICMP Echo Request (type 8) → Echo Reply (type 0) · 32 octets`, result: ok ? `${n} réponses de ${ip}` : why }));
+  ev('ping', { src: id, dst: ip, owner: ok ? r.owner.id : null, ok });
+}
+function cmdTracert(id, args) {
+  const target = args.find(x => !x.startsWith('-')); if (!target) { out(id, 'Utilisation : tracert <cible>', 'mu'); return; }
+  const res = resolve(id, target); if (!res.ok) { out(id, `Impossible de résoudre le nom système de la cible ${target}.`, 'er'); out(id, '↳ ' + res.why, 'mu'); return; }
+  const r = l3path(id, res.ip);
+  out(id, ''); out(id, `Détermination de l'itinéraire vers ${res.fqdn || target} [${res.ip}]`); out(id, 'avec un maximum de 30 sauts :'); out(id, '');
+  r.hops.forEach((h, i) => {
+    const dd = DEV[h.id], ms = Math.max(1, Math.round(h.lat * 2)), nm = dd.type === 'cloud' ? dd.hn : (dd.name.toLowerCase() + (dd.type === 'www' ? '' : '.' + (isPriv(h.ip) ? SUFFIX : 'net')));
+    out(id, `  ${String(i + 1).padStart(2)}    ${String(ms).padStart(3)} ms   ${String(ms).padStart(3)} ms   ${String(ms + 1).padStart(3)} ms  ${nm} [${h.ip}]${h.tun ? '   ← via le tunnel VPN' : ''}`, h.tun ? 'vp' : 'ok');
+  });
+  if (!r.ok) { for (let k = 1; k <= 3; k++) out(id, `  ${String(r.hops.length + k).padStart(2)}     *        *        *     Délai d'attente de la demande dépassé.`, 'er'); out(id, '↳ ' + r.why, 'mu'); }
+  out(id, ''); out(id, 'Itinéraire déterminé.');
+  anim(pathNodes(r.segs), 'icmp', 'TTL 1, 2, 3…');
+  setLast(lastFrom(r, { ok: r.ok, title: `tracert ${target}`, ttl: 1, l4: 'ICMP (Windows) ou UDP 33434+ (Linux) avec TTL croissant', l7: 'Chaque routeur qui décrémente le TTL à 0 renvoie un ICMP « Time Exceeded » : on découvre ainsi chaque saut', result: r.ok ? `${r.hops.length} saut(s)` : r.why }));
+  ev('cmd', { dev: id, c: 'tracert' });
+}
+function cmdNslookup(id, args) {
+  const name = args[0]; if (!name) { out(id, 'Utilisation : nslookup <nom> [serveur]', 'mu'); return; }
+  const d = DEV[id]; let res;
+  if (args[1]) { const c = netReach(id, args[1], 53, 'UDP'); res = c.ok ? Object.assign({ dns: args[1], server: c.owner, c }, dnsAnswer(c.owner, name.toLowerCase())) : { ok: false, why: `Serveur ${args[1]} injoignable sur UDP 53 · ${c.why}`, c, dns: args[1] }; }
+  else res = resolve(id, name);
+  if (res.lit) { out(id, `${name} est déjà une adresse IP.`, 'mu'); return; }
+  if (res.server) { out(id, `Serveur :   ${res.server.name.toLowerCase()}${res.server.zone ? '.' + SUFFIX : ''}`); out(id, `Address:  ${res.dns}`); }
+  else out(id, `*** Impossible de joindre le serveur DNS ${res.dns || '(aucun)'}`, 'er');
+  out(id, '');
+  if (res.ok) { if (!res.auth) out(id, 'Réponse ne faisant pas autorité :', 'mu'); out(id, `Nom :      ${res.fqdn}`, 'ok'); out(id, `Address:  ${res.ip}`, 'ok'); }
+  else out(id, `*** ${res.why}`, 'er');
+  animDns(res);
+  setLast(lastFrom(res.c && res.c.r, { ok: res.ok, title: `nslookup ${name}`, l4: `UDP · port ${eph()} → 53`, l7: `DNS · question « ${name} » type A → ${res.ok ? 'réponse ' + res.ip : 'erreur'}`, result: res.ok ? `${name} = ${res.ip}` : res.why }));
+  ev('nslookup', { dev: id, ok: res.ok }); ev('cmd', { dev: id, c: 'nslookup' });
+}
+function cmdConnect(id, args, udp) {
+  const host = args.filter(x => !x.startsWith('-'))[0], port = +args.filter(x => !x.startsWith('-'))[1];
+  if (!host || !port) { out(id, 'Utilisation : telnet <hôte> <port>   ou   nc -zv [-u] <hôte> <port>', 'mu'); return; }
+  const proto = udp ? 'UDP' : 'TCP', res = resolve(id, host);
+  if (!res.ok) { out(id, `Hôte inconnu : ${host}`, 'er'); out(id, '↳ ' + res.why, 'mu'); return; }
+  if (!res.lit) animDns(res);
+  out(id, `Connexion à ${host} (${res.ip}) ${proto} ${port}…`);
+  const c = netReach(id, res.ip, port, proto);
+  if (c.ok) { const s = SVC[c.svc.k]; out(id, `${proto} ${port} ouvert · ${c.owner.name} · ${s.n}`, 'ok'); out(id, '  ' + banner(c.svc.k, c.owner), 'mu'); if (c.fwd) out(id, `↳ redirigé par ${DEV[c.fwd.dev].name} vers ${c.fwd.ip}:${c.fwd.port}`, 'mu'); }
+  else out(id, ({ refused: `Connexion refusée (${proto} RST) : rien n'écoute sur ce port.`, filtered: "Délai dépassé : paquet filtré par un pare-feu.", timeout: 'Délai de connexion dépassé.', unreach: 'Hôte inaccessible.', noroute: 'Réseau inaccessible.', media: 'Câble réseau débranché.' })[c.code] || 'Échec.', 'er');
+  if (!c.ok) out(id, '↳ ' + c.why, 'mu');
+  anim(pathNodes(c.segs), c.svc ? c.svc.k : 'http', proto + ' ' + port); if (c.ok) anim(pathNodes(c.back.segs), c.svc.k, c.svc ? SVC[c.svc.k].s : '');
+  setLast(lastFrom(c.r, { ok: c.ok, title: `test du port ${proto} ${port}`, l4: udp ? `UDP · port ${eph()} → ${port}` : `TCP · port ${eph()} → ${port} · SYN → ${c.ok ? 'SYN-ACK' : c.code === 'refused' ? 'RST' : '(silence)'}`, l7: c.ok ? SVC[c.svc.k].n : '—', result: c.ok ? 'port ouvert' : c.why, fwd: c.fwd }));
+  ev('port', { dev: id, ip: res.ip, port, ok: c.ok });
+}
+function banner(k, o) { return ({ http: 'HTTP/1.1 400 Bad Request · Server: nginx', https: 'TLS 1.3 ServerHello · certificat ' + SUFFIX, ftp: `220 ${o.name.toLowerCase()} FTP prêt`, ssh: 'SSH-2.0-OpenSSH_9.6', smb: 'SMB 3.1.1 NEGOTIATE', mysql: 'J\\0 8.0.36 mysql_native_password', dns: '(réponse DNS)', audio: 'ICY 200 OK · icecast2', video: 'HTTP/1.1 200 OK · application/vnd.apple.mpegurl', nfs: 'RPC NFS v4.1', nasweb: 'HTTP/1.1 200 OK · NAS Manager', iscsi: 'iSCSI Login Response', admin: 'HTTP/1.1 401 Unauthorized · RT-01', vpn: 'WireGuard handshake response' })[k] || ''; }
+function mountShare(id, letter, path, proto) {
+  const d = DEV[id]; proto = proto || 'smb';
+  let host, share;
+  if (proto === 'nfs') { const m = /^([^:]+):\/?(.+)$/.exec(path || ''); if (!m) { out(id, 'Syntaxe : mount -t nfs hôte:/partage /mnt/dossier', 'mu'); return; } host = m[1]; share = m[2]; }
+  else { const m = /^[\\/]{2}([^\\/]+)[\\/]+([^\\/]+)/.exec(path || ''); if (!m) { out(id, 'Syntaxe : net use Z: \\\\serveur\\partage', 'mu'); return; } host = m[1]; share = m[2]; }
+  letter = normL(letter);
+  if (d.mounts.some(x => x.letter === letter)) { out(id, "Erreur système 85. Le nom de périphérique local est déjà utilisé.", 'er'); return; }
+  const port = proto === 'nfs' ? 2049 : 445, res = resolve(id, host);
+  if (!res.ok) { out(id, "Erreur système 53. Le chemin réseau n'a pas été trouvé.", 'er'); out(id, '↳ ' + res.why, 'mu'); animDns(res); ev('mount', { dev: id, ok: false }); return; }
+  if (!res.lit) animDns(res);
+  const c = netReach(id, res.ip, port, 'TCP');
+  anim(pathNodes(c.segs), proto, proto.toUpperCase() + ' ' + port);
+  const L = { title: `${proto === 'nfs' ? 'mount' : 'net use'} ${letter} ${path}`, l4: `TCP · port ${eph()} → ${port}` };
+  if (!c.ok) { out(id, "Erreur système 53. Le chemin réseau n'a pas été trouvé.", 'er'); out(id, '↳ ' + c.why, 'mu'); setLast(lastFrom(c.r, Object.assign(L, { ok: false, l7: proto === 'nfs' ? 'NFS MOUNT' : 'SMB2 NEGOTIATE', result: c.why }))); ev('mount', { dev: id, ok: false }); return; }
+  anim(pathNodes(c.back.segs), proto, 'réponse');
+  const o = c.owner, sh = (o.shares || []).find(s => s.name.toLowerCase() === share.toLowerCase() && s.on);
+  if (!sh) { out(id, 'Erreur système 67. Nom de réseau introuvable.', 'er'); out(id, `↳ ${o.name} répond sur le port ${port} mais ne partage aucun dossier « ${share} ».`, 'mu'); ev('mount', { dev: id, ok: false }); setLast(lastFrom(c.r, Object.assign(L, { ok: false, l7: `SMB2 TREE_CONNECT ${unc(host, share)} → STATUS_BAD_NETWORK_NAME`, result: 'partage inexistant' }))); return; }
+  if (sh.acl) { out(id, 'Erreur système 5. Accès refusé.', 'er'); out(id, '↳ ' + sh.acl, 'mu'); ev('mount', { dev: id, ok: false }); setLast(lastFrom(c.r, Object.assign(L, { ok: false, l7: `SMB2 TREE_CONNECT → STATUS_ACCESS_DENIED`, result: 'accès refusé (droits)' }))); return; }
+  d.mounts.push({ letter, host, ip: res.ip, share: sh.name, owner: o.id, proto });
+  out(id, proto === 'nfs' ? `${host}:/${sh.name} monté sur ${letter}` : "La commande s'est terminée correctement.", 'ok');
+  out(id, `↳ ${letter} → ${proto === 'nfs' ? host + ':/' + sh.name : unc(host, sh.name)} · ${proto.toUpperCase()} · TCP ${port} · ${o.name}${c.r.vpn ? ' · via le tunnel VPN' : ''}`, 'mu');
+  setLast(lastFrom(c.r, Object.assign(L, { ok: true, l7: proto === 'nfs' ? `NFS v4.1 · MOUNT ${host}:/${sh.name}` : `SMB 3.1.1 · NEGOTIATE → SESSION_SETUP → TREE_CONNECT ${unc(host, sh.name)}`, result: `lecteur ${letter} connecté` })));
+  ev('mount', { dev: id, owner: o.id, ok: true, byName: !res.lit });
+}
+function cmdNetUse(id, args) {
+  const d = DEV[id];
+  if (!args.length) { if (!d.mounts.length) out(id, "Aucune entrée dans la liste.", 'mu'); else { out(id, 'État       Local     Distant                         Réseau', 'mu'); d.mounts.forEach(m => out(id, `OK         ${m.letter.padEnd(9)} ${(m.proto === 'nfs' ? m.host + ':/' + m.share : unc(m.host, m.share)).padEnd(31)} ${m.proto.toUpperCase()}`, 'ok')); } return; }
+  if (args.some(x => /^\/del(ete)?$/i.test(x))) { const L = normL(args[0]), i = d.mounts.findIndex(m => m.letter === L); if (i < 0) out(id, 'La connexion réseau est introuvable.', 'er'); else { d.mounts.splice(i, 1); out(id, `${L} a été supprimé.`, 'ok'); } return; }
+  if (args.length < 2) { out(id, 'Syntaxe : net use Z: \\\\serveur\\partage', 'mu'); return; }
+  mountShare(id, args[0], args[1], 'smb');
+}
+function cmdDir(id, args) {
+  const d = DEV[id], p = (args.filter(x => !x.startsWith('-'))[0] || '').trim();
+  if (!p) {
+    if (d.os === 'win') { out(id, ' Répertoire de C:\\Users\\etudiant'); ['Bureau', 'Documents', 'Téléchargements', ...(d.shares || []).map(s => s.name)].forEach(n => out(id, `04/10/2026  09:12    <DIR>          ${n}`)); }
+    else out(id, 'www  logs  backup  scripts');
+    if (d.mounts.length) out(id, `Lecteurs réseau : ${d.mounts.map(m => m.letter).join(', ')}`, 'mu');
+    return;
+  }
+  const L = normL(p.replace(/[\\/]+$/, '')), m = d.mounts.find(x => x.letter.toUpperCase() === L.toUpperCase());
+  if (!m) { out(id, "Le chemin d'accès spécifié est introuvable.", 'er'); out(id, '↳ Connectez d’abord un lecteur réseau avec « net use ».', 'mu'); return; }
+  const c = netReach(id, m.ip, m.proto === 'nfs' ? 2049 : 445, 'TCP');
+  anim(pathNodes(c.segs), m.proto, 'lecture');
+  if (!c.ok || c.owner.id !== m.owner) { out(id, "Erreur 53. Le chemin réseau n'a pas été trouvé : la connexion au partage est perdue.", 'er'); out(id, '↳ ' + (c.why || 'la machine qui répond n’est plus la même'), 'mu'); ev('dir', { dev: id, owner: m.owner, ok: false }); return; }
+  anim(pathNodes(c.back.segs), m.proto, 'fichiers');
+  const sh = (c.owner.shares || []).find(s => s.name === m.share && s.on);
+  if (!sh) { out(id, 'Erreur système 67. Le partage a été retiré.', 'er'); ev('dir', { dev: id, owner: m.owner, ok: false }); return; }
+  out(id, ` Répertoire de ${m.letter}${m.letter.endsWith(':') ? '\\' : ''}  (${m.proto === 'nfs' ? m.host + ':/' + m.share : unc(m.host, m.share)} sur ${c.owner.name})`, 'in'); out(id, '');
+  let tot = 0;
+  sh.files.forEach(f => { if (f.endsWith('/')) out(id, `03/10/2026  17:4${hashN(f) % 10}    <DIR>          ${f.slice(0, -1)}`); else { const sz = (hashN(f) % 900000) + 12000; tot += sz; out(id, `03/10/2026  1${hashN(f) % 9}:2${hashN(f) % 10}    ${fr(sz).padStart(14)} ${f}`); } });
+  out(id, `               ${sh.files.filter(f => !f.endsWith('/')).length} fichier(s)    ${fr(tot)} octets`, 'mu');
+  setLast(lastFrom(c.r, { ok: true, title: `dir ${m.letter}`, l4: `TCP · session ouverte → ${m.proto === 'nfs' ? 2049 : 445}`, l7: m.proto === 'nfs' ? 'NFS READDIR' : `SMB2 QUERY_DIRECTORY sur ${unc(m.host, m.share)}`, result: `${sh.files.length} éléments` }));
+  ev('dir', { dev: id, owner: m.owner, ok: true });
+}
+function cmdIscsi(id, args) {
+  const d = DEV[id], a = args.map(x => x.toLowerCase());
+  if (!d.iscsi) { if (a.includes('discover') || a.includes('discovery')) { const ip = args.find(x => ip2n(x) != null) || '10.0.50.10'; const c = netReach(id, ip, 3260, 'TCP'); out(id, `Découverte iSCSI sur ${ip}:3260…`); out(id, c.ok ? 'Cible trouvée, mais aucune LUN n’est présentée à cet hôte.' : 'iscsiadm: cannot make connection to ' + ip + ' (aucune route)', c.ok ? 'wa' : 'er'); if (!c.ok) out(id, '↳ ' + c.why, 'mu'); anim(pathNodes(c.segs), 'iscsi', 'iSCSI'); ev('iscsi', { dev: id, act: 'discover', ok: false }); return; } out(id, "Pas d'initiateur iSCSI configuré sur ce poste : le SAN est réservé aux serveurs.", 'er'); return; }
+  if (a.includes('discover') || a.includes('discovery')) {
+    const ip = args.find(x => ip2n(x) != null); if (!ip) { out(id, 'Utilisation : iscsi discover 10.0.50.10', 'mu'); return; }
+    const c = netReach(id, ip, 3260, 'TCP'); anim(pathNodes(c.segs), 'iscsi', 'iSCSI 3260');
+    if (!c.ok) { out(id, `iscsiadm: impossible de joindre ${ip}:3260`, 'er'); out(id, '↳ ' + c.why, 'mu'); ev('iscsi', { dev: id, act: 'discover', ok: false }); return; }
+    anim(pathNodes(c.back.segs), 'iscsi', 'cibles');
+    d.iscsi.disc = ip; (c.owner.luns || []).forEach(l => out(id, `${ip}:3260,1 iqn.2026-10.lan.entreprise:baie.lun${l.id}   (${l.n}, ${l.cap})`, 'ok'));
+    out(id, '↳ Tapez « iscsi login » pour ouvrir la session.', 'mu');
+    setLast(lastFrom(c.r, { ok: true, title: 'découverte iSCSI', l4: `TCP · port ${eph()} → 3260`, l7: 'iSCSI SendTargets · liste des cibles (IQN)', result: 'cibles découvertes' }));
+    ev('iscsi', { dev: id, act: 'discover', ok: true }); return;
+  }
+  if (a.includes('login')) {
+    if (!d.iscsi.disc) { out(id, 'Aucune cible découverte : faites d’abord « iscsi discover 10.0.50.10 ».', 'er'); return; }
+    const c = netReach(id, d.iscsi.disc, 3260, 'TCP'); anim(pathNodes(c.segs), 'iscsi', 'LOGIN');
+    if (!c.ok) { out(id, 'Connexion iSCSI impossible : ' + c.why, 'er'); return; }
+    const lun = (c.owner.luns || []).find(l => l.to === id);
+    (c.owner.luns || []).forEach(l => { if (l.to !== id) out(id, `Login iqn…lun${l.id} : refusé (masquage de LUN : réservée à ${DEV[l.to].name})`, 'wa'); });
+    if (!lun) { out(id, 'Aucune LUN autorisée.', 'er'); return; }
+    d.iscsi.on = true; d.iscsi.lun = lun;
+    out(id, `Login iqn.2026-10.lan.entreprise:baie.lun${lun.id} [${d.iscsi.disc}:3260] : réussi.`, 'ok');
+    out(id, `↳ Nouveau disque bloc /dev/sdb (${lun.cap}) : le serveur le formate et le monte comme un disque local.`, 'mu');
+    setLast(lastFrom(c.r, { ok: true, title: 'connexion iSCSI', l4: 'TCP · session → 3260', l7: `iSCSI LOGIN puis commandes SCSI (READ/WRITE de blocs) encapsulées dans TCP`, result: `LUN${lun.id} vue comme /dev/sdb` }));
+    ev('iscsi', { dev: id, act: 'login', ok: true }); return;
+  }
+  if (a.includes('logout')) { d.iscsi.on = false; d.iscsi.lun = null; out(id, 'Session iSCSI fermée : /dev/sdb a disparu.', 'ok'); return; }
+  out(id, 'Utilisation : iscsi discover <ip> · iscsi login · iscsi logout', 'mu');
+}
+function cmdLsblk(id) {
+  const d = DEV[id];
+  out(id, 'NOM          TAILLE            TYPE  ACCÈS    LIAISON', 'mu');
+  const sd = 'abcdefgh'; let k = 0;
+  (d.disks || []).forEach(x => { out(id, `${(d.os === 'win' ? 'Disque ' + k : 'sd' + sd[k]).padEnd(12)} ${x.cap.padEnd(17)} ${x.t.padEnd(5)} bloc     ${x.bus} (${x.n})`, 'ok'); k++; });
+  if (d.iscsi && d.iscsi.on) out(id, `${('sd' + sd[k]).padEnd(12)} ${d.iscsi.lun.cap.padEnd(17)} SAN   bloc     iSCSI ${d.iscsi.disc}:3260 · ${d.iscsi.lun.n}`, 'vp');
+  d.mounts.forEach(m => out(id, `${m.letter.padEnd(12)} ${'—'.padEnd(17)} ${(m.owner === 'nas' ? 'NAS' : 'RÉS.').padEnd(5)} fichier  ${m.proto.toUpperCase()} ${m.proto === 'nfs' ? m.host + ':/' + m.share : unc(m.host, m.share)}`, 'in'));
+  out(id, '↳ DAS et SAN : accès BLOC (le système gère le formatage). NAS et partages : accès FICHIER (le serveur distant gère le système de fichiers).', 'mu');
+  ev('cmd', { dev: id, c: 'lsblk', san: !!(d.iscsi && d.iscsi.on) });
+}
+function cmdNetstat(id) {
+  const d = DEV[id]; out(id, 'Proto  Adresse locale          Adresse distante        État', 'mu');
+  const a = firstAddr(d);
+  (d.svcs || []).filter(s => s.on).forEach(s => out(id, `${s.proto.padEnd(6)} ${('0.0.0.0:' + s.port).padEnd(23)} ${'0.0.0.0:0'.padEnd(23)} ${s.proto === 'TCP' ? 'LISTENING' : ''}   ← ${SVC[s.k].n}`, 'ok'));
+  if (d.dhcp && d.dhcp.on) out(id, `UDP    0.0.0.0:67              *:*                        ← Serveur DHCP`, 'ok');
+  d.mounts.forEach(m => out(id, `TCP    ${((d.tun ? d.tun.ip : a ? a.ip : '?') + ':' + (49200 + hashN(m.letter) % 800)).padEnd(23)} ${(m.ip + ':' + (m.proto === 'nfs' ? 2049 : 445)).padEnd(23)} ESTABLISHED`, 'in'));
+  Object.values(DEV).forEach(x => x.mounts.filter(m => m.owner === id).forEach(m => { const xa = x.tun ? x.tun.ip : (firstAddr(x) || {}).ip; out(id, `TCP    ${((a ? a.ip : '?') + ':' + (m.proto === 'nfs' ? 2049 : 445)).padEnd(23)} ${(xa + ':' + (49200 + hashN(m.letter) % 800)).padEnd(23)} ESTABLISHED  (${x.name})`, 'in'); }));
+  if (d.tun) out(id, `UDP    ${(a ? a.ip : '?')}:51820       ${d.vpn.srvIp}:${d.vpn.port}      tunnel VPN`, 'vp');
+  ev('cmd', { dev: id, c: 'netstat' });
+}
+function cmdRoute(id) {
+  const d = DEV[id]; out(id, 'Destination        Masque              Passerelle       Interface', 'mu');
+  for (const f of d.ifs) { const a = addrOf(d, f); if (a) out(id, `${n2ip(netN(a.ip, a.cidr)).padEnd(18)} ${maskStr(a.cidr).padEnd(19)} ${'On-link'.padEnd(16)} ${f.id} (${a.ip})`); }
+  if (d.tun) { out(id, `192.168.10.0       255.255.255.0       ${'tunnel'.padEnd(16)} tun0 (${d.tun.ip})`, 'vp'); out(id, `10.8.0.0           255.255.255.0       ${'On-link'.padEnd(16)} tun0`, 'vp'); }
+  if (d.vpnSrv && svcOn(d, 'vpn')) out(id, `10.8.0.0           255.255.255.0       ${'On-link'.padEnd(16)} wg0 (${d.vpnSrv.ip})`, 'vp');
+  for (const f of d.ifs) { const a = addrOf(d, f); if (a && a.gw) out(id, `0.0.0.0            0.0.0.0             ${a.gw.padEnd(16)} ${f.id}   ← route par défaut`, 'ok'); }
+  if (d.type === 'cloud') out(id, 'Les routeurs d’Internet n’ont aucune route vers les plages privées.', 'mu');
+  ev('cmd', { dev: id, c: 'route' });
+}
+function cmdVpn(id, args) {
+  const d = DEV[id]; if (!d.vpn) { out(id, "Pas de client VPN sur ce poste.", 'er'); return; }
+  const a = (args[0] || 'status').toLowerCase(), v = d.vpn;
+  if (a === 'connect' || a === 'up') {
+    if (v.up) { out(id, 'Le tunnel est déjà actif.', 'mu'); return; }
+    out(id, `WireGuard : connexion à ${v.srv}, UDP ${v.port}…`, 'vp');
+    const res = resolve(id, v.srv, { noVpn: true });
+    if (!res.ok) { out(id, `Échec : impossible de résoudre ${v.srv}`, 'er'); out(id, '↳ ' + res.why, 'mu'); ev('vpn', { dev: id, up: false }); return; }
+    if (!res.lit) animDns(res);
+    const c = netReach(id, res.ip, v.port, 'UDP', { noVpn: true });
+    anim(pathNodes(c.segs), 'vpn', 'handshake');
+    if (!c.ok) { out(id, `Échec : le serveur ${res.ip} ne répond pas au handshake sur UDP ${v.port}.`, 'er'); out(id, '↳ ' + c.why, 'mu'); setLast(lastFrom(c.r, { ok: false, title: 'connexion VPN', l4: `UDP · ${v.port} → ${v.port}`, l7: 'WireGuard Handshake Initiation', result: c.why })); ev('vpn', { dev: id, up: false }); return; }
+    v.up = true; v.srvIp = res.ip; d.tun = { ip: v.tunIp, cidr: 24, dns: '192.168.10.53' };
+    anim(pathNodes(c.back.segs), 'vpn', 'tunnel établi');
+    out(id, `Tunnel établi. Adresse dans le tunnel : ${v.tunIp}/24 · DNS interne 192.168.10.53`, 'ok');
+    out(id, '↳ Les paquets vers 192.168.10.0/24 sont désormais chiffrés et encapsulés dans UDP, puis envoyés à l’adresse publique du routeur.', 'mu');
+    setLast(lastFrom(c.r, { ok: true, title: 'connexion VPN', l4: `UDP · ${v.port} → ${v.port}`, l7: 'WireGuard · Handshake Initiation → Response (Curve25519, ChaCha20-Poly1305)', result: 'tunnel établi' }));
+    ev('vpn', { dev: id, up: true }); return;
+  }
+  if (a === 'disconnect' || a === 'down') { v.up = false; d.tun = null; out(id, 'Tunnel fermé.', 'ok'); ev('vpn', { dev: id, up: false }); return; }
+  out(id, v.up ? `Tunnel ACTIF · ${v.tunIp} ↔ ${v.srvIp}:${v.port}` : 'Tunnel INACTIF', v.up ? 'ok' : 'mu');
+  if (v.up) { const u = vpnUnder(d); if (!u.ok) out(id, '⚠ Tunnel rompu : ' + u.why, 'er'); }
+}
+function cmdShow(id, args) {
+  const d = DEV[id], s = args.join(' ').toLowerCase();
+  if (/mac/.test(s) && d.mact) {
+    out(id, '          Table des adresses MAC', 'mu'); out(id, 'VLAN   Adresse MAC         Type       Port        (équipement)', 'mu');
+    const e = Object.entries(d.mact); if (!e.length) out(id, '(table vide : le switch n’a encore vu passer aucune trame)', 'mu');
+    e.forEach(([m, x]) => out(id, `1      ${m}   DYNAMIC    ${x.port.padEnd(11)} ${x.who}`, 'ok')); ev('cmd', { dev: id, c: 'showmac' }); return;
+  }
+  if (/int/.test(s) && d.type === 'switch') { LINKS.filter(l => l.a === id || l.b === id).forEach(l => { const p = l.a === id ? l.ai : l.bi, o = DEV[other(l, id).d]; out(id, `${p.padEnd(10)} ${(l.up ? 'connected' : 'notconnect').padEnd(11)} ${MED[l.m].s.padEnd(14)} ${o.name}`, l.up ? 'ok' : 'er'); }); return; }
+  if (/route/.test(s)) { cmdRoute(id); return; }
+  if (/dhcp/.test(s) && d.dhcp) { out(id, 'Adresse IP        MAC                 Hôte', 'mu'); Object.entries(d.dhcp.leases).forEach(([m, l]) => out(id, `${l.ip.padEnd(17)} ${m}   ${l.host}`, 'ok')); return; }
+  if (/nat/.test(s) && d.fwd) { d.fwd.forEach(f => out(id, `${f.on ? 'actif  ' : 'inactif'} ${f.proto} ${(addrOf(d, ifObj(d, 'wan')).ip + ':' + f.ext).padEnd(20)} → ${f.ip}:${f.port}  (${f.n})`, f.on ? 'ok' : 'mu')); out(id, 'NAT sortant : 192.168.10.0/24 → ' + addrOf(d, ifObj(d, 'wan')).ip + ' (masquerade)', 'mu'); return; }
+  if (/(int|ip)/.test(s)) { routerIfOut(id); return; }
+  if (/vpn|wireguard/.test(s) && d.vpnSrv) { const p = Object.values(DEV).filter(x => x.tun); out(id, `wg0 · ${svcOn(d, 'vpn') ? 'actif' : 'arrêté'} · écoute UDP ${(d.svcs.find(x => x.k === 'vpn') || {}).port}`); p.forEach(x => out(id, `pair ${x.name} · ${x.tun.ip} · point d'accès ${vpnUnder(x).ok ? vpnUnder(x).c.r.srcIp : '?'}`, 'vp')); if (!p.length) out(id, '(aucun pair connecté)', 'mu'); return; }
+  out(id, 'Commandes : show mac address-table · show interfaces status · show ip interface brief · show ip route · show ip dhcp binding · show ip nat translations · show vpn', 'mu');
+}
+function cmdAide(id) {
+  const d = DEV[id];
+  if (d.os === 'ios') { out(id, `${d.name} · interface en ligne de commande`, 'in'); out(id, '  show ip interface brief · show ip route · show mac address-table · show interfaces status', 'mu'); out(id, '  show ip dhcp binding · show ip nat translations · show vpn · ping <ip> · traceroute <ip> · clear mac', 'mu'); return; }
+  const g = [['PHYSIQUE / LIAISON', 'bl', ['getmac · adresses MAC des cartes', 'arp -a · table ARP (IP ↔ MAC)', 'lsblk · disques DAS, SAN et partages']],
+    ['LOGIQUE (IP)', 'ok', ['ipconfig [/all] [/release] [/renew] · ou ip a', 'ping <cible> [-n 4]', 'tracert <cible> · route print', 'nslookup <nom> [serveur]']],
+    ['LOGICIEL (PORTS, SERVICES)', 'in', ['netstat -an · ports ouverts et sessions', 'telnet <hôte> <port> · nc -zv [-u] <hôte> <port>', 'curl <url> · net use Z: \\\\serveur\\partage · net use Z: /delete', 'dir Z: · net share · ftp <hôte> · mysql -h <hôte> [-P port]', 'mount -t cifs //hôte/partage /mnt/x · mount -t nfs hôte:/partage /mnt/x', 'vpn connect | disconnect | status (postes nomades)', 'iscsi discover <ip> · iscsi login · iscsi logout (serveurs SAN)']],
+    ['DIVERS', 'mu', ['hostname · cls · aide']]];
+  g.forEach(([t, c, L]) => { out(id, t, c); L.forEach(x => out(id, '   ' + x)); });
+}
+const CMDS = {
+  aide: cmdAide, help: cmdAide, '?': cmdAide,
+  ipconfig: (id, a) => {
+    const d = DEV[id], A = a.map(x => x.toLowerCase());
+    if (A.includes('/release')) { d.ifs.filter(f => f.mode === 'dhcp').forEach(f => { if (f.lease) { const s = Object.values(DEV).find(x => x.dhcp && x.dhcp.leases[f.mac]); if (s) delete s.dhcp.leases[f.mac]; } f.lease = null; f.apipa = null; }); out(id, 'Configuration IP libérée (DHCPRELEASE envoyé).', 'ok'); ev('dhcp', { dev: id, rel: true }); return; }
+    if (A.includes('/renew')) {
+      const fs = d.ifs.filter(f => f.mode === 'dhcp'); if (!fs.length) { out(id, "Aucune carte n'est configurée en DHCP : l'adresse est fixe.", 'wa'); return; }
+      fs.forEach(f => {
+        out(id, `${f.id} : DHCPDISCOVER envoyé en diffusion (ff:ff:ff:ff:ff:ff, UDP 68 → 67)…`, 'bl');
+        const r = doDhcp(id, f);
+        if (r.ok) { out(id, `DHCPOFFER ${r.ip} de ${r.srv.name} → DHCPREQUEST → DHCPACK`, 'ok'); }
+        else { out(id, "Une erreur s'est produite lors du renouvellement de l'interface " + f.id + ' : ' + r.why + '.', 'er'); if (r.apipa) out(id, `↳ Windows s'attribue une adresse APIPA ${f.apipa.ip}/16 : elle ne permet de joindre que les voisins sans passerelle.`, 'wa'); }
+        setLast({ ok: r.ok, title: 'ipconfig /renew', src: d.name, srcIp: '0.0.0.0', dstIp: '255.255.255.255 (diffusion)', mac: { src: f.mac, dst: 'ff:ff:ff:ff:ff:ff', dstName: 'tout le réseau' }, media: (() => { const l = linkAt(id, f.id); return l ? [MED[l.m].n] : []; })(), nat: [], path: [], hops: [], l4: 'UDP · port 68 (client) → 67 (serveur)', l7: 'DHCP · DISCOVER → OFFER → REQUEST → ACK (bail : IP, masque, passerelle, DNS)', result: r.ok ? 'bail ' + r.ip : r.why });
+        ev('dhcp', { dev: id, ok: r.ok, apipa: !!r.apipa });
+      });
+      ipconfigOut(id, false); return;
+    }
+    ipconfigOut(id, A.includes('/all')); ev('cmd', { dev: id, c: 'ipconfig' });
+  },
+  ip: (id, a) => { if ((a[0] || '').startsWith('r')) cmdRoute(id); else { ipconfigOut(id, true); ev('cmd', { dev: id, c: 'ipconfig' }); } },
+  ifconfig: (id) => { ipconfigOut(id, true); ev('cmd', { dev: id, c: 'ipconfig' }); },
+  ping: cmdPing, tracert: cmdTracert, traceroute: cmdTracert, nslookup: cmdNslookup, dig: cmdNslookup,
+  arp: (id) => {
+    const d = DEV[id], e = Object.entries(d.arp); const a = firstAddr(d);
+    out(id, ''); out(id, `Interface : ${a ? a.ip : '?'} --- 0x3`); out(id, '  Adresse Internet      Adresse physique      Type', 'mu');
+    if (!e.length) out(id, '  (cache vide : faites un ping pour le remplir)', 'mu');
+    e.forEach(([ip, x]) => out(id, `  ${ip.padEnd(21)} ${x.mac.replace(/:/g, '-').padEnd(21)} dynamique`, 'bl'));
+    out(id, `  ${'255.255.255.255'.padEnd(21)} ${'ff-ff-ff-ff-ff-ff'.padEnd(21)} statique`, 'mu');
+    ev('cmd', { dev: id, c: 'arp' });
+  },
+  getmac: (id) => DEV[id].ifs.forEach(f => out(id, `${f.mac.toUpperCase().replace(/:/g, '-')}   ${f.id}`, 'bl')),
+  route: (id) => cmdRoute(id), netstat: cmdNetstat, ss: cmdNetstat,
+  telnet: (id, a) => cmdConnect(id, a, false), nc: (id, a) => cmdConnect(id, a, a.some(x => /u/.test(x) && x.startsWith('-'))),
+  curl: (id, a) => {
+    const u = a.find(x => !x.startsWith('-')); if (!u) { out(id, 'Utilisation : curl <url>', 'mu'); return; }
+    const R = httpGet(id, u);
+    if (R.ok) { out(id, `< HTTP/1.1 200 OK`, 'ok'); out(id, `< Server: ${R.owner.name.toLowerCase()}`, 'mu'); out(id, `< Content-Type: text/html; charset=utf-8`, 'mu'); out(id, ''); const t = document.createElement('div'); t.innerHTML = pageFor(R, id); out(id, t.textContent.replace(/\s+/g, ' ').trim().slice(0, 300) + '…'); }
+    else out(id, `curl: ${R.err.code} · ${R.err.t}`, 'er');
+    animHttp(R); setLastHttp(R, id); ev('browse', { dev: id, ok: R.ok, owner: R.owner && R.owner.id, port: R.port, code: R.err && R.err.code, dnsFail: R.dnsFail, ip: R.ip, curl: true });
+  },
+  net: (id, a) => {
+    const s = (a[0] || '').toLowerCase();
+    if (s === 'use') return cmdNetUse(id, a.slice(1));
+    if (s === 'share') { const d = DEV[id]; if (!(d.shares || []).length) { out(id, 'Aucun partage.', 'mu'); return; } out(id, 'Nom du partage   Ressource                  Remarque', 'mu'); d.shares.forEach(x => out(id, `${x.name.padEnd(16)} ${(d.os === 'win' ? 'C:\\Partages\\' : '/srv/') + x.name}`.padEnd(44) + (x.on ? (svcOn(d, 'smb') ? 'partagé' : 'partagé mais service SMB arrêté') : 'non partagé'), x.on && svcOn(d, 'smb') ? 'ok' : 'wa')); return; }
+    out(id, 'Utilisation : net use … · net share', 'mu');
+  },
+  dir: cmdDir, ls: cmdDir,
+  mount: (id, a) => { const t = a[a.indexOf('-t') + 1]; const rest = a.filter((x, i) => !x.startsWith('-') && a[i - 1] !== '-t'); if (rest.length < 2) { out(id, 'Utilisation : mount -t cifs //hôte/partage /mnt/x  ·  mount -t nfs hôte:/partage /mnt/x', 'mu'); return; } mountShare(id, rest[1], rest[0], t === 'nfs' ? 'nfs' : 'smb'); },
+  umount: (id, a) => { const d = DEV[id], i = d.mounts.findIndex(m => m.letter === a[0]); if (i < 0) out(id, 'umount: non monté', 'er'); else { d.mounts.splice(i, 1); out(id, 'Démonté.', 'ok'); } },
+  mysql: (id, a) => {
+    let h = null, p = 3306; for (let i = 0; i < a.length; i++) { if (a[i] === '-h') h = a[++i]; else if (a[i] === '-P') p = +a[++i]; }
+    if (!h) { out(id, 'Utilisation : mysql -h <hôte> [-P port]', 'mu'); return; }
+    const res = resolve(id, h); if (!res.ok) { out(id, `ERROR 2005 (HY000): Unknown MySQL server host '${h}'`, 'er'); out(id, '↳ ' + res.why, 'mu'); return; }
+    const c = netReach(id, res.ip, p, 'TCP'); anim(pathNodes(c.segs), 'mysql', 'MySQL ' + p);
+    if (!c.ok || c.svc.k !== 'mysql') { out(id, `ERROR 2003 (HY000): Can't connect to MySQL server on '${h}:${p}'`, 'er'); out(id, '↳ ' + (c.why || `le port ${p} répond, mais pas en MySQL (${SVC[c.svc.k].n})`), 'mu'); ev('port', { dev: id, port: p, ok: false }); return; }
+    anim(pathNodes(c.back.segs), 'mysql', 'résultat');
+    out(id, `Bienvenue dans le moniteur MySQL 8.0.36 · serveur ${c.owner.name}`, 'ok'); out(id, 'mysql> SELECT titre, duree, statut FROM films LIMIT 3;', 'in');
+    ['+-----------------------+--------+------------+', '| titre                 | duree  | statut     |', '+-----------------------+--------+------------+', '| Les Lumières du Port  | 01:32  | étalonnage |', '| Nuit Blanche          | 00:14  | livré      |', '| Le Vent Debout        | 01:47  | montage    |', '+-----------------------+--------+------------+', '3 rows in set (0,00 sec)'].forEach(x => out(id, x));
+    setLast(lastFrom(c.r, { ok: true, title: 'requête SQL', l4: `TCP · port ${eph()} → ${p}`, l7: 'Protocole MySQL · authentification puis requête SELECT', result: '3 lignes' })); ev('port', { dev: id, port: p, ok: true });
+  },
+  ftp: (id, a) => { if (!a[0]) { out(id, 'Utilisation : ftp <hôte>', 'mu'); return; } const R = httpGet(id, 'ftp://' + a[0]); if (R.ok) { out(id, `Connecté à ${a[0]}.`, 'ok'); out(id, `220 ${R.owner.name.toLowerCase()} FTP prêt`, 'mu'); out(id, 'ftp> ls', 'in'); (R.owner.ftpFiles || []).forEach(f => out(id, (f.endsWith('/') ? 'drwxr-xr-x  ' : '-rw-r--r--  ') + f)); out(id, '226 Transfert terminé.', 'mu'); } else out(id, `ftp: ${R.err.t}`, 'er'); animHttp(R); setLastHttp(R, id); ev('browse', { dev: id, ok: R.ok, owner: R.owner && R.owner.id, port: 21, ftp: true }); },
+  vpn: cmdVpn, wg: cmdVpn,
+  iscsi: cmdIscsi, iscsiadm: cmdIscsi, lsblk: cmdLsblk, diskpart: cmdLsblk, disques: cmdLsblk,
+  hostname: (id) => out(id, DEV[id].name.toLowerCase()),
+  cls: (id) => { TERM[id].lines = []; }, clear: (id) => { TERM[id].lines = []; },
+  show: cmdShow, sh: cmdShow,
+};
+CMDS['clear-mac'] = (id) => { if (DEV[id].mact) { DEV[id].mact = {}; out(id, 'Table MAC vidée.', 'ok'); } };
+
+/* ===================== navigateur ===================== */
+const DEFPORT = { http: 80, https: 443, ftp: 21, smb: 445 };
+function httpGet(id, raw) {
+  const R = { steps: [], ok: false, raw };
+  let u = String(raw || '').trim(); if (!u) { R.err = { code: 'URL vide', t: 'Saisissez une adresse.' }; return R; }
+  let scheme, host, port, path;
+  if (u.startsWith('\\\\') || u.startsWith('//')) { const p = u.slice(2).split(/[\\/]+/).filter(Boolean); scheme = 'smb'; host = p[0]; path = '/' + p.slice(1).join('/'); port = 445; }
+  else {
+    if (!/^[a-z]+:\/\//i.test(u)) u = 'http://' + u;
+    const m = /^([a-z]+):\/\/([^\/:?#\\]+)(?::(\d+))?([^?#]*)/i.exec(u); if (!m) { R.err = { code: 'ERR_INVALID_URL', t: 'Adresse invalide.' }; return R; }
+    scheme = m[1].toLowerCase(); host = m[2]; port = m[3] ? +m[3] : DEFPORT[scheme]; path = m[4] || '/';
+  }
+  if (!DEFPORT[scheme]) { R.err = { code: 'ERR_UNKNOWN_URL_SCHEME', t: `Protocole « ${scheme} » non pris en charge (http, https, ftp, smb).` }; return R; }
+  Object.assign(R, { scheme, host, port, path, url: scheme === 'smb' ? unc(host, path.slice(1).replace(/\//g, BS)) : `${scheme}://${host}${port !== DEFPORT[scheme] ? ':' + port : ''}${path}` });
+  const res = resolve(id, host); R.res = res;
+  if (!res.lit) R.steps.push({ c: res.ok ? 'app' : 'err', k: 'DNS', t: res.ok ? `${host} → ${res.ip} (demandé à ${res.dns}, UDP 53)` : res.why });
+  if (!res.ok) { R.dnsFail = true; R.err = { code: 'DNS_PROBE_FINISHED_NXDOMAIN', t: `Impossible de trouver l'adresse IP du serveur « ${host} ».`, why: res.why }; return R; }
+  const c = netReach(id, res.ip, port, 'TCP'); R.c = c; R.ip = res.ip;
+  if (c.r) {
+    const hn = pathNodes(c.segs).map(x => DEV[x.n].name);
+    R.steps.push({ c: 'log', k: 'IP', t: `${c.r.src0 || '?'} → ${res.ip}${c.r.nat.length ? ' · NAT ' + c.r.nat.map(x => x.from + '→' + x.to).join(', ') : ''}${c.fwd ? ` · redirection ${DEV[c.fwd.dev].name} → ${c.fwd.ip}:${c.fwd.port}` : ''}` });
+    if (c.r.vpn) R.steps.push({ c: 'vpn', k: 'VPN', t: `encapsulé dans UDP ${c.r.vpn.port} · ${c.r.vpn.outerSrc} → ${c.r.vpn.outerDst} · chiffré` });
+    R.steps.push({ c: 'phy', k: 'Câbles', t: hn.join(' → ') + (hn.length ? ' · ' + mediaList(c.segs).join(' / ') : '') });
+  }
+  if (!c.ok) {
+    const map = { refused: 'ERR_CONNECTION_REFUSED', filtered: 'ERR_CONNECTION_TIMED_OUT', timeout: 'ERR_CONNECTION_TIMED_OUT', unreach: 'ERR_ADDRESS_UNREACHABLE', noroute: 'ERR_ADDRESS_UNREACHABLE', media: 'ERR_INTERNET_DISCONNECTED' };
+    const txt = { refused: `${host} n'autorise pas la connexion sur le port ${port}.`, filtered: `${host} met trop de temps à répondre.`, timeout: `${host} met trop de temps à répondre.`, unreach: `${host} est injoignable.`, noroute: `Aucune route vers ${host}.`, media: 'Vous n’êtes pas connecté à Internet.' };
+    R.err = { code: map[c.code] || 'ERR_FAILED', t: txt[c.code] || 'Échec.', why: c.why }; R.code = c.code;
+    R.steps.push({ c: 'err', k: 'TCP ' + port, t: c.why }); return R;
+  }
+  R.steps.push({ c: 'app', k: 'TCP ' + port, t: `connexion établie (SYN → SYN-ACK → ACK) · ${c.owner.name} · ${SVC[c.svc.k].n}` });
+  R.owner = c.owner; R.svc = c.svc;
+  const k = c.svc.k, okType = scheme === 'smb' ? k === 'smb' : scheme === 'ftp' ? k === 'ftp' : scheme === 'https' ? k === 'https' : (HTTPLIKE.has(k) && k !== 'https');
+  if (!okType) { R.err = { code: 'ERR_INVALID_RESPONSE', t: `Le port ${port} de ${c.owner.name} répond, mais en ${SVC[k].n}, pas en ${scheme.toUpperCase()}.`, why: 'Un port = un service : le client doit parler le protocole du programme qui écoute.' }; R.steps.push({ c: 'err', k: scheme.toUpperCase(), t: 'protocole inattendu : ' + banner(k, c.owner) }); return R; }
+  R.ok = true;
+  R.steps.push({ c: 'app', k: scheme.toUpperCase(), t: scheme === 'smb' ? `SMB 3.1.1 · TREE_CONNECT ${R.url}` : scheme === 'ftp' ? 'USER anonymous → LIST · 226 Transfert terminé' : `GET ${path} · Host: ${host} → 200 OK${k === 'https' ? ' · chiffré TLS 1.3' : ''}` });
+  return R;
+}
+function animHttp(R) { if (R.res && !R.res.lit) animDns(R.res); if (R.c) { const k = R.svc ? R.svc.k : 'http'; anim(pathNodes(R.c.segs), k, (R.scheme || 'http').toUpperCase() + ' ' + R.port); if (R.c.back && R.c.ok) anim(pathNodes(R.c.back.segs), k, 'réponse'); } }
+function setLastHttp(R, id) {
+  const sc = (R.scheme || 'http').toUpperCase();
+  setLast(lastFrom(R.c && R.c.r, { ok: R.ok, title: R.url || R.raw, fwd: R.c && R.c.fwd, l4: `TCP · port ${eph()} → ${R.port || '?'}${R.c && R.c.fwd ? ` (puis ${R.c.fwd.port} après redirection)` : ''}`, l7: sc === 'SMB' ? `SMB 3.1.1 · TREE_CONNECT ${R.url}` : sc === 'FTP' ? 'FTP · USER / PASS / LIST' : `${sc} · GET ${R.path || '/'} · Host: ${R.host || ''}${sc === 'HTTPS' ? ' · dans un tunnel TLS' : ''}`, result: R.ok ? `${R.owner.name} a répondu` : (R.err.why || R.err.t) }));
+}
+function pageFor(R, id) {
+  const o = R.owner, k = R.svc.k, seen = R.c.r.srcIp, lk = (u, t) => `<span class="lk" data-href="${esc(u)}">${esc(t)}</span>`;
+  const bar = (t, s) => `<div class="bar"><span>${t}</span><small>${s}</small></div>`;
+  if (k === 'smb') {
+    const share = R.path.replace(/^\/+/, '').split('/')[0];
+    if (!share) return bar('Partages de ' + esc(o.name), unc(R.host)) + `<div class="pg"><p>Dossiers partagés par ${esc(o.name)} :</p><div class="tiles">${(o.shares || []).filter(s => s.on).map(s => `<div class="tile"><b>📁 ${esc(s.name)}</b>${lk(unc(R.host, s.name), 'ouvrir')}</div>`).join('') || '<p>Aucun dossier partagé.</p>'}</div></div>`;
+    const sh = (o.shares || []).find(s => s.on && s.name.toLowerCase() === share.toLowerCase());
+    if (!sh) return `<div class="pgerr"><div class="big">⚠</div><h1>Nom de réseau introuvable</h1><p>${esc(o.name)} ne partage pas « ${esc(share)} ».</p><code>STATUS_BAD_NETWORK_NAME (erreur 67)</code></div>`;
+    if (sh.acl) return `<div class="pgerr"><div class="big">🔒</div><h1>Accès refusé</h1><p>${esc(sh.acl)}</p><code>STATUS_ACCESS_DENIED (erreur 5)</code></div>`;
+    return bar('📁 ' + esc(sh.name), unc(R.host, sh.name)) + `<div class="pg"><div class="fl">${sh.files.map(f => (f.endsWith('/') ? '📁 ' : '📄 ') + esc(f)).join('<br>')}</div><p style="margin-top:10px;font-size:.8rem;color:#666">Accès en mode FICHIER : c'est ${esc(o.name)} qui gère le disque et le système de fichiers.</p></div>`;
+  }
+  if (k === 'ftp') return bar('Index de ftp://' + esc(R.host), '220 ' + esc(o.name.toLowerCase())) + `<div class="pg"><div class="fl">${(o.ftpFiles || []).map(f => (f.endsWith('/') ? '📁 ' : '📄 ') + esc(f)).join('<br>')}</div><p style="margin-top:10px;font-size:.8rem;color:#666">FTP : commandes sur TCP 21, données sur un second port négocié (mode passif). Les mots de passe circulent en clair : préférez SFTP (SSH, port 22).</p></div>`;
+  if (k === 'audio') return bar('Radio interne', `${esc(R.host)}:${R.port}`) + `<div class="pg"><div class="player"><b>▶ En direct · Radio Atelier</b><div class="eq">${'<i></i>'.repeat(24).replace(/<i><\/i>/g, () => `<i style="animation-delay:-${(Math.random()).toFixed(2)}s"></i>`)}</div><span class="mono" style="font-size:.78rem;color:#aaa">Flux MP3 128 kb/s · Icecast · TCP ${R.port} · client ${esc(seen)}</span></div><p>Un flux audio continu : le serveur envoie les données tant que le client reste connecté.</p></div>`;
+  if (k === 'video') return bar('Médiathèque vidéo', `${esc(R.host)}:${R.port}`) + `<div class="pg"><div class="vid"><span>rushes_J1 · 1080p25 · HLS · segments de 6 s</span></div><p>HLS découpe la vidéo en petits fichiers servis en HTTP : le lecteur choisit le débit selon la bande passante.</p><p style="font-size:.8rem;color:#666">Stockage des médias : LUN1 de la baie SAN (accès bloc iSCSI).</p></div>`;
+  if (k === 'nasweb') return bar('NAS-01 · gestionnaire de stockage', `${esc(R.host)}:${R.port}`) + `<div class="pg"><h4>Volume</h4><p>RAID 5 · 4 × 8 To SATA · 24 To utiles · état : sain</p><h4>Partages</h4><table><tr><th>Nom</th><th>SMB</th><th>NFS</th></tr>${o.shares.map(s => `<tr><td>${esc(s.name)}</td><td>${svcOn(o, 'smb') ? 'oui' : 'non'}</td><td>${svcOn(o, 'nfs') ? 'oui' : 'non'}</td></tr>`).join('')}</table><p style="margin-top:8px">Accès : ${lk(unc('nas', 'Medias'), unc('nas', 'Medias'))}</p></div>`;
+  if (k === 'admin') { const w = addrOf(o, ifObj(o, 'wan')), l = addrOf(o, ifObj(o, 'lan')); return bar(esc(o.name) + ' · administration', 'connexion requise') + `<div class="pg"><table><tr><th>WAN</th><td>${w ? w.ip + '/' + w.cidr : '—'}</td></tr><tr><th>LAN</th><td>${l ? l.ip + '/' + l.cidr : '—'}</td></tr><tr><th>DHCP</th><td>${o.dhcp.on ? `actif · ${o.dhcp.start} – ${o.dhcp.end}` : 'arrêté'}</td></tr><tr><th>Baux</th><td>${Object.keys(o.dhcp.leases).length}</td></tr><tr><th>VPN</th><td>${svcOn(o, 'vpn') ? 'actif' : 'arrêté'}</td></tr><tr><th>Redirections</th><td>${o.fwd.filter(f => f.on).map(f => f.ext + '→' + f.ip + ':' + f.port).join(', ') || 'aucune'}</td></tr></table><p style="font-size:.8rem;color:#666">Les réglages se font dans l'inspecteur du routeur. Cette page n'est accessible que depuis le LAN.</p></div>`; }
+  if (o.id === 'www') return bar('Exemple.com', R.scheme === 'https' ? '🔒 TLS 1.3' : 'HTTP non chiffré') + `<div class="pg"><h1>Exemple<span>.com</span></h1><p>Site public hébergé en datacenter (192.0.2.80).</p><p>Votre adresse IP publique vue par ce site : <span class="ip">${esc(seen)}</span></p><p style="font-size:.84rem;color:#555">${isPriv(R.c.r.src0) ? `Votre poste a pourtant l'adresse privée ${esc(R.c.r.src0)} : c'est le NAT qui l'a remplacée.` : ''}</p></div>`;
+  if (o.id === 'web') {
+    const ext = !isPriv(seen) || seen.startsWith('100.');
+    if (R.path.startsWith('/annuaire')) { const z = DEV.dns.zone; return bar('Intranet · annuaire', R.host) + `<div class="pg"><h4>Annuaire DNS (zone ${SUFFIX})</h4><table><tr><th>Nom</th><th>Adresse</th></tr>${z.map(r => `<tr><td>${esc(r.n)}.${SUFFIX}</td><td>${esc(r.ip)}</td></tr>`).join('')}</table><p>${lk('http://intranet.' + SUFFIX, '← accueil')}</p></div>`; }
+    return bar('Intranet · Entreprise', (R.scheme === 'https' ? '🔒 ' : '') + `${esc(R.host)}:${R.port}`) + `<div class="pg"><h1>Intranet <span>entreprise</span></h1><p>Bienvenue. Votre adresse IP vue par le serveur : <span class="ip">${esc(seen)}</span>${R.c.r.vpn ? ' (adresse du tunnel VPN)' : ext ? ' (accès depuis Internet par redirection de port)' : ''}</p>
+      <div class="tiles"><div class="tile"><b>Annuaire</b>${lk('http://intranet.' + SUFFIX + '/annuaire', 'noms et adresses')}</div><div class="tile"><b>Radio interne</b>${lk('http://radio.' + SUFFIX + ':8000', 'écouter')}</div><div class="tile"><b>Vidéothèque</b>${lk('http://video.' + SUFFIX + ':8080', 'regarder')}</div><div class="tile"><b>Dépôt FTP</b>${lk('ftp://ftp.' + SUFFIX, 'livrables')}</div><div class="tile"><b>Fichiers communs</b>${lk(unc('srv-fichiers', 'Commun'), unc('srv-fichiers', 'Commun'))}</div><div class="tile"><b>NAS</b>${lk('http://nas.' + SUFFIX + ':5000', 'administration')}</div></div></div>`;
+  }
+  return bar(esc(o.name), esc(R.host)) + `<div class="pg"><p>Page par défaut du serveur web.</p></div>`;
+}
+function browse(id, raw) {
+  const d = DEV[id]; if (!HOSTS.has(d.type)) return;
+  const R = httpGet(id, raw); BR[id] = { url: R.url || raw, R };
+  animHttp(R); setLastHttp(R, id);
+  ev('browse', { dev: id, ok: R.ok, owner: R.owner && R.owner.id, port: R.port, code: R.code || (R.err && R.err.code), dnsFail: !!R.dnsFail, ip: R.ip, url: R.url });
+  render();
+}
+function drawBrowser() {
+  const id = S.active, d = DEV[id]; $('#brDev').textContent = d.name;
+  const can = HOSTS.has(d.type) && d.type !== 'san';
+  $('#url').disabled = !can; $('#go').disabled = !can;
+  const B = BR[id];
+  if (!can) { $('#bview').innerHTML = `<div class="pgerr"><div class="big">⌨</div><h1>Pas de navigateur sur ${esc(d.name)}</h1><p>Cet équipement s'administre en ligne de commande : utilisez le terminal.</p></div>`; $('#btrace').innerHTML = ''; return; }
+  if (document.activeElement !== $('#url')) $('#url').value = B ? B.url : (d.type === 'laptop' ? 'http://www.exemple.com' : 'http://intranet.' + SUFFIX);
+  if (!B) { $('#bview').innerHTML = `<div class="pgerr"><div class="big">🌐</div><h1>Navigateur de ${esc(d.name)}</h1><p>Tapez une adresse (nom ou IP, port facultatif) puis « Aller ». Exemples : <code>http://192.168.10.20</code>, <code>intranet.${SUFFIX}:8080</code>, <code>ftp://srv-ftp</code>, <code>\\\\srv-fichiers\\Commun</code>.</p></div>`; $('#btrace').innerHTML = '<span class="dim">Le détail de chaque requête (DNS, IP, câbles, TCP, application) s’affichera ici.</span>'; return; }
+  const R = B.R;
+  $('#bview').innerHTML = R.ok ? pageFor(R, id) : `<div class="pgerr"><div class="big">${R.dnsFail ? '🔎' : '⚠'}</div><h1>Ce site est inaccessible</h1><p>${esc(R.err.t)}</p>${R.err.why ? `<p style="color:#666;font-size:.86rem">${esc(R.err.why)}</p>` : ''}<code>${esc(R.err.code)}</code></div>`;
+  $('#btrace').innerHTML = R.steps.map(s => `<div class="s ${s.c}"><i>${esc(s.k)}</i><span>${esc(s.t)}</span></div>`).join('') || '<span class="dim">—</span>';
+}
+
+/* ===================== encapsulation ===================== */
+function drawEnc() {
+  const L = LAST;
+  if (!L) { $('#enc').innerHTML = '<p class="muted" style="font-size:.86rem">Lancez un ping, une page web ou un lecteur réseau : le paquet s’affichera ici, couche par couche, comme des enveloppes emboîtées.</p>'; $('#encR').innerHTML = ''; $('#encInfo').textContent = ''; return; }
+  $('#encInfo').textContent = (L.src ? L.src + ' · ' : '') + (L.title || '');
+  const natT = (L.nat || []).map(x => `NAT ${DEV[x.dev].name} : ${x.from} → ${x.to}`).join(' · ');
+  const inner = `<div class="enc e3"><div class="et">Couche 3 · Réseau · IPv4 (logique)</div><div class="ev">IP source ${esc(L.srcIp || '?')} → IP destination ${esc(L.dstIp || '?')}${L.ttl ? ' · TTL ' + L.ttl : ''}${natT ? '<br>' + esc(natT) : ''}${L.fwd ? `<br>Redirection de port ${esc(DEV[L.fwd.dev].name)} : ${L.fwd.ext} → ${esc(L.fwd.ip)}:${L.fwd.port}` : ''}</div>
+    <div class="enc e4"><div class="et">Couche 4 · Transport (logiciel)</div><div class="ev">${esc(L.l4 || '—')}</div>
+      <div class="enc e7"><div class="et">Couches 5 à 7 · Application (logiciel)</div><div class="ev">${esc(L.l7 || '—')}</div></div></div></div>`;
+  const vpn = L.vpn ? `<div class="enc ev2"><div class="et">Tunnel VPN · enveloppe extérieure chiffrée</div><div class="ev">IP ${esc(L.vpn.outerSrc)} → ${esc(L.vpn.outerDst)} · UDP ${L.vpn.port} · WireGuard (ChaCha20-Poly1305) : tout ce qui suit est illisible sur Internet</div>${inner}</div>` : inner;
+  $('#enc').innerHTML = `<div class="enc e1"><div class="et">Couche 1 · Physique</div><div class="ev">${esc((L.media || []).join(' → ') || '—')}</div>
+    <div class="enc e2"><div class="et">Couche 2 · Liaison · trame Ethernet / Wi-Fi</div><div class="ev">${L.mac ? `MAC ${esc(L.mac.src)} → ${esc(L.mac.dst)} (${esc(L.mac.dstName)}${L.mac.gw ? ', la passerelle' : ''})` : '—'}<br><span class="dim">La MAC change à chaque saut de routeur, l’adresse IP reste la même (sauf NAT).</span></div>${vpn}</div></div>`;
+  const P = L.path || [];
+  $('#encR').innerHTML = `<h3 style="color:var(--amber);margin-bottom:6px">Parcours</h3><div class="pathc">${P.map((p, i) => `${i ? `<i>${p.tun ? '⇢' : '→'}</i>` : ''}<b class="${p.tun ? 't' : ''}">${esc(DEV[p.n].name)}</b>`).join('') || '<span class="dim">pas de trajet (échec local)</span>'}</div>
+    <div class="note ${L.ok ? 'ok' : 'err'}" style="margin-top:10px">${L.ok ? '✓ ' : '✕ '}${esc(L.result || '')}</div>
+    <p class="dim" style="font-size:.76rem;margin-top:8px">Bleu : support physique et trame. Vert : adresses IP et routage. Ambre : ports et protocole applicatif. Rose : tunnel VPN.</p>`;
+}
+
+/* ===================== carte SVG ===================== */
+const HH = { pc: 26, laptop: 18, server: 28, www: 28, nas: 25, san: 30, switch: 12, hub: 11, router: 18, box: 14, cloud: 0 };
+function scr(d) { return S.active === d.id ? '#24507e' : '#0f1418'; }
+function icon(d) {
+  const I = ICO, K = DARK;
+  switch (d.type) {
+    case 'pc': return `<rect x="-26" y="-26" width="52" height="36" rx="3" fill="${I}"/><rect x="-22" y="-22" width="44" height="27" rx="1" fill="${scr(d)}"/><path d="M-5 10h10l3 9h-16z" fill="${I}"/><rect x="-16" y="19" width="32" height="5" rx="2" fill="${I}"/>`;
+    case 'laptop': return `<rect x="-22" y="-24" width="44" height="30" rx="3" fill="${I}"/><rect x="-18" y="-20" width="36" height="22" fill="${scr(d)}"/><path d="M-30 8h60l-5 9h-50z" fill="${I}"/>`;
+    case 'server': case 'www': return `<rect x="-19" y="-28" width="38" height="54" rx="3" fill="${I}"/>` + [0, 1, 2, 3].map(i => `<rect x="-14" y="${-23 + i * 12}" width="28" height="8" rx="1" fill="${K}"/><circle cx="9" cy="${-19 + i * 12}" r="1.8" fill="#86e0a2"/>`).join('') + (d.type === 'www' ? `<circle cx="20" cy="-22" r="11" fill="${K}" stroke="${I}" stroke-width="2"/><path d="M9 -22h22M20 -33c-6 6-6 16 0 22M20 -33c6 6 6 16 0 22" stroke="${I}" stroke-width="1.5" fill="none"/>` : '');
+    case 'nas': return `<rect x="-25" y="-25" width="50" height="50" rx="5" fill="${I}"/>` + [0, 1, 2, 3].map(i => `<rect x="${-20 + i * 10.5}" y="-19" width="8" height="32" rx="1.5" fill="${K}"/><circle cx="${-16 + i * 10.5}" cy="19" r="1.7" fill="#86e0a2"/>`).join('');
+    case 'san': return `<rect x="-32" y="-30" width="64" height="60" rx="3" fill="${I}"/>` + [0, 1, 2, 3, 4].map(i => `<rect x="-27" y="${-25 + i * 10.5}" width="54" height="8" rx="1" fill="${K}"/>` + [0, 1, 2, 3, 4, 5].map(j => `<rect x="${-25 + j * 8.6}" y="${-23.5 + i * 10.5}" width="6.6" height="5" fill="#3d4650"/>`).join('')).join('');
+    case 'switch': return `<rect x="-38" y="-12" width="76" height="24" rx="3" fill="${I}"/>` + [...Array(8)].map((_, i) => `<rect x="${-32 + i * 7.6}" y="-5" width="5.6" height="6" fill="${K}"/>`).join('') + `<circle cx="31" cy="-2" r="2.2" fill="#86e0a2"/>`;
+    case 'hub': return `<rect x="-32" y="-11" width="64" height="22" rx="11" fill="${I}"/>` + [...Array(5)].map((_, i) => `<circle cx="${-18 + i * 9}" cy="0" r="3.2" fill="${K}"/>`).join('');
+    case 'router': return `<ellipse cx="0" cy="9" rx="32" ry="10" fill="${I}"/><rect x="-32" y="-8" width="64" height="17" fill="${I}"/><ellipse cx="0" cy="-8" rx="32" ry="10" fill="#eef0f2" stroke="${I}"/><path d="M-4 -13l-10-0M-14 -13l4-3M-14 -13l4 3M4 -3l10 0M14 -3l-4-3M14 -3l-4 3M-18 -6l-8 3M18 -11l8-3" stroke="${K}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+    case 'box': return `<path d="M-16 -14v-14M16 -14v-14" stroke="${I}" stroke-width="3" stroke-linecap="round"/><rect x="-28" y="-14" width="56" height="28" rx="9" fill="${I}"/>` + [0, 1, 2].map(i => `<circle cx="${-10 + i * 8}" cy="1" r="2.2" fill="#86e0a2"/>`).join('');
+    case 'cloud': return `<path d="M-70 34 a28 28 0 0 1 2 -55 a36 36 0 0 1 66 -14 a32 32 0 0 1 56 18 a26 26 0 0 1 -4 51 z" fill="#161a1e" stroke="${I}" stroke-width="3"/><text x="0" y="6" text-anchor="middle" class="tn" fill="${I}" font-size="17">INTERNET</text><text x="0" y="22" text-anchor="middle" fill="#8e979f" font-size="9">routeurs des opérateurs</text>`;
+  }
+  return '';
+}
+function drawMap() {
+  const C = conflicts(); let z = '', l = '', s = '', dv = '';
+  const zone = (x, y, w, h, c, t) => `<g class="L-log"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="12" fill="${c}" fill-opacity=".045" stroke="${c}" stroke-opacity=".45" stroke-dasharray="6 5"/><text x="${x + 12}" y="${y + 18}" fill="${c}" class="tn" font-size="12.5">${esc(t)}</text></g>`;
+  const nl = (id, f) => netLbl(addrOf(DEV[id], ifObj(DEV[id], f)));
+  z += zone(18, 16, 744, 650, '#86e0a2', 'LAN entreprise · ' + nl('r1', 'lan'));
+  z += zone(400, 676, 520, 176, '#5fd4c4', 'SAN iSCSI · ' + nl('san', 'eth0') + ' · réseau isolé, sans passerelle');
+  z += zone(880, 16, 242, 650, '#c8d0d8', 'Internet · adresses publiques');
+  z += zone(1140, 112, 288, 196, '#c4e86a', 'Domicile · ' + nl('box1', 'lan'));
+  z += zone(1140, 382, 288, 196, '#c4e86a', '4G · hôtel · ' + nl('box2', 'lan'));
+  // liens
+  LINKS.forEach((L, i) => {
+    const A = DEV[L.a], B = DEV[L.b], M = MED[L.m], mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+    const col = L.up ? M.c : '#ef6b6b', dash = L.up ? M.d : '5 5';
+    l += `<g class="lk"><line class="lhit" data-l="${i}" x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="transparent" stroke-width="16"><title>${esc(M.n)} · ${esc(A.name)} ↔ ${esc(B.name)} · cliquer pour ${L.up ? 'débrancher' : 'rebrancher'}</title></line>
+      <line class="lvis lnk" x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${col}" stroke-width="${M.w}" ${dash ? `stroke-dasharray="${dash}"` : ''} stroke-linecap="round" pointer-events="none"/>
+      ${L.up ? `<text class="L-phy halo" x="${mx}" y="${my - 4}" text-anchor="middle" fill="#9cc0ff" font-size="9" pointer-events="none">${esc(M.s)}</text>` : `<g pointer-events="none"><circle cx="${mx}" cy="${my}" r="9" fill="#1b1112" stroke="#ef6b6b"/><path d="M${mx - 4} ${my - 4}l8 8M${mx + 4} ${my - 4}l-8 8" stroke="#ef6b6b" stroke-width="2"/></g>`}</g>`;
+  });
+  // DAS
+  for (const d of Object.values(DEV)) if ((d.type === 'server') && d.disks.length) {
+    const x = d.x + 38, y = d.y + 14;
+    s += `<g class="L-phy" pointer-events="none"><line x1="${d.x + 19}" y1="${y}" x2="${x - 9}" y2="${y}" stroke="#7d8fb0" stroke-width="2.5"/><ellipse cx="${x}" cy="${y - 7}" rx="9" ry="3.5" fill="#9cc0ff"/><rect x="${x - 9}" y="${y - 7}" width="18" height="14" fill="#5b95f0"/><ellipse cx="${x}" cy="${y + 7}" rx="9" ry="3.5" fill="#5b95f0"/><ellipse cx="${x}" cy="${y - 7}" rx="9" ry="3.5" fill="#9cc0ff"/><text x="${x}" y="${y + 21}" text-anchor="middle" fill="#9cc0ff" font-size="8.5" class="halo">DAS</text></g>`;
+  }
+  // tunnels VPN
+  for (const d of Object.values(DEV)) if (d.tun) {
+    const r = DEV.r1, top = d.y < 330, cy = top ? 205 : 470, ok = vpnUnder(d).ok;
+    s += `<g class="L-log" pointer-events="none"><path d="M${d.x} ${d.y} Q 1100 ${cy} ${r.x} ${r.y}" fill="none" stroke="${ok ? '#ec3a8c' : '#ef6b6b'}" stroke-width="4" stroke-dasharray="10 6" opacity=".9"/><text x="1085" y="${(d.y + r.y + 2 * cy) / 4 + (top ? -8 : 16)}" text-anchor="middle" fill="#f6a9cc" font-size="10.5" class="halo">🔒 tunnel VPN ${esc(d.tun.ip)}${ok ? '' : ' · rompu'}</text></g>`;
+  }
+  // sessions applicatives
+  for (const d of Object.values(DEV)) {
+    d.mounts.forEach((m, k) => { const o = DEV[m.owner]; const mx = (d.x + o.x) / 2, my = (d.y + o.y) / 2, dx = o.y - d.y, dy = d.x - o.x, L = Math.hypot(dx, dy) || 1, off = 46 + k * 18, cx = mx + dx / L * off, cy = my + dy / L * off;
+      s += `<g class="L-app" pointer-events="none"><path d="M${d.x} ${d.y} Q ${cx} ${cy} ${o.x} ${o.y}" fill="none" stroke="#e8b84a" stroke-width="2.4" stroke-dasharray="1 6" stroke-linecap="round"/><text x="${(d.x + 2 * cx + o.x) / 4}" y="${(d.y + 2 * cy + o.y) / 4}" text-anchor="middle" fill="#e8b84a" font-size="10" class="halo">${esc(m.letter)} · ${m.proto.toUpperCase()} ${m.proto === 'nfs' ? 2049 : 445}</text></g>`; });
+    if (d.iscsi && d.iscsi.on) { const o = DEV.san; s += `<g class="L-app" pointer-events="none"><path d="M${d.x} ${d.y + 28} Q ${(d.x + o.x) / 2} ${o.y + 70} ${o.x} ${o.y}" fill="none" stroke="#e8b84a" stroke-width="2.4" stroke-dasharray="1 6" stroke-linecap="round"/><text x="${(d.x + o.x) / 2}" y="${o.y + 50}" text-anchor="middle" fill="#e8b84a" font-size="10" class="halo">LUN${d.iscsi.lun.id} · iSCSI 3260 · bloc</text></g>`; }
+  }
+  // équipements
+  for (const d of Object.values(DEV)) {
+    const hh = HH[d.type] || 26, sel = S.sel === d.id;
+    let lab = '';
+    if (d.type !== 'cloud') {
+      let y = hh + 15;
+      lab += `<text x="0" y="${y}" text-anchor="middle" class="tn halo" fill="${S.active === d.id ? '#e8b84a' : '#e6e9ec'}" font-size="12">${esc(d.name)}</text>`;
+      for (const f of d.ifs) { const a = addrOf(d, f); y += 12.5; lab += `<text class="L-log halo" x="0" y="${y}" text-anchor="middle" fill="${!a ? '#ef6b6b' : a.auto ? '#f0a35e' : '#86e0a2'}" font-size="10">${d.ifs.length > 1 ? f.id + ' ' : ''}${a ? a.ip + '/' + a.cidr : 'sans IP'}${f.mode === 'dhcp' && a && !a.auto ? ' ·dhcp' : ''}</text>`; }
+      if (d.tun) { y += 12.5; lab += `<text class="L-log halo" x="0" y="${y}" text-anchor="middle" fill="#f6a9cc" font-size="10">tun0 ${d.tun.ip}</text>`; }
+      const bd = (d.svcs || []).map(x => ({ t: SVC[x.k].s + ' ' + x.port, on: x.on, c: SVC[x.k].c, ch: +x.port !== SVC[x.k].port }));
+      if (d.dhcp && d.dhcp.on) bd.push({ t: 'DHCP 67', on: true, c: '#f5d76e' });
+      if (bd.length) {
+        y += 6; const rows = []; for (let i = 0; i < bd.length; i += 3) rows.push(bd.slice(i, i + 3));
+        rows.forEach(rw => { const ws = rw.map(b => b.t.length * 5.7 + 10), tw = ws.reduce((a, b) => a + b, 0) + (rw.length - 1) * 3; let x = -tw / 2;
+          rw.forEach((b, i) => { lab += `<g class="L-app"><rect x="${x}" y="${y}" width="${ws[i]}" height="13" rx="6.5" fill="${b.on ? '#1c170b' : '#15181b'}" stroke="${b.on ? b.c : '#3a424a'}" stroke-width="${b.ch ? 2 : 1}"/><text x="${x + ws[i] / 2}" y="${y + 9.6}" text-anchor="middle" fill="${b.on ? b.c : '#5f6870'}" font-size="8.6" ${b.on ? '' : 'text-decoration="line-through"'}>${esc(b.t)}</text></g>`; x += ws[i] + 3; });
+          y += 15; });
+      }
+    }
+    let led = '';
+    if (HOSTS.has(d.type) || d.type === 'router' || d.type === 'box') {
+      const a = firstAddr(d), up = d.ifs.some(f => linkUp(d.id, f.id)); const c = !up || !a ? '#ef6b6b' : a.auto ? '#f0a35e' : '#86e0a2';
+      led = `<circle cx="${d.type === 'san' ? 36 : 30}" cy="${-hh + 2}" r="4.5" fill="${c}" stroke="#0a0c0e" stroke-width="1.5"/>`;
+    }
+    const cf = C[d.id] ? `<text x="0" y="${-hh - 8}" text-anchor="middle" fill="#ef6b6b" font-size="10.5" class="tn halo">⚠ conflit IP ${esc(C[d.id])}</text>` : '';
+    const ring = d.type === 'cloud' ? `<ellipse class="ring" rx="96" ry="64" fill="none" stroke="#e8b84a" stroke-width="2" opacity="${sel ? 1 : 0}"/>` : `<rect class="ring" x="-46" y="${-hh - 10}" width="92" height="${2 * hh + 20}" rx="8" fill="none" stroke="#e8b84a" stroke-width="2" opacity="${sel ? 1 : 0}"/>`;
+    dv += `<g class="dev" data-id="${d.id}" transform="translate(${d.x},${d.y})" tabindex="0" role="button" aria-label="${esc(d.name)}"><title>${esc(d.name)} · ${esc(d.role)}</title><rect x="-46" y="${-hh - 10}" width="92" height="${2 * hh + 20}" fill="transparent"/>${ring}${icon(d)}${led}${cf}${lab}</g>`;
+  }
+  $('#gS').innerHTML = z + l + s + dv;
+  $('#map').dataset.v = S.view;
+}
+function drawLegend() {
+  const ln = (c, w, d) => `<svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="${c}" stroke-width="${w}" ${d ? `stroke-dasharray="${d}"` : ''} stroke-linecap="round"/></svg>`;
+  const bx = (c) => `<svg width="34" height="12"><rect x="1" y="1" width="32" height="10" rx="3" fill="${c}" fill-opacity=".1" stroke="${c}" stroke-dasharray="4 3"/></svg>`;
+  const pl = (c, t) => `<svg width="34" height="13"><rect x="1" y="1" width="32" height="11" rx="5.5" fill="#1c170b" stroke="${c}"/><text x="17" y="9.5" text-anchor="middle" fill="${c}" font-size="7.5" font-family="IBM Plex Mono">${t}</text></svg>`;
+  $('#legend').innerHTML = `<div class="lphy"><h3>Physique · supports</h3>
+    <div class="lg">${ln('#5b95f0', 2.4)}Cuivre RJ45 (épaisseur = débit)</div><div class="lg">${ln('#4fd1e0', 3)}Fibre optique du SAN</div><div class="lg">${ln('#9aa8ff', 4)}Liaison opérateur (FTTH, datacenter)</div><div class="lg">${ln('#5b95f0', 2.2, '2 5')}Wi-Fi · ${ln('#9aa8ff', 2.6, '8 5')} 4G</div><div class="lg">${ln('#ef6b6b', 2, '5 5')}Câble débranché</div></div>
+    <div class="llog"><h3>Logique · réseaux IP</h3>
+    <div class="lg">${bx('#86e0a2')}Sous-réseau (adresse/masque)</div><div class="lg"><svg width="34" height="10"><circle cx="17" cy="5" r="4" fill="#86e0a2"/></svg>IP valide · <span style="color:#f0a35e">APIPA</span> · <span style="color:#ef6b6b">sans IP</span></div><div class="lg">${ln('#ec3a8c', 4, '10 6')}Tunnel VPN chiffré</div><div class="lg"><svg width="34" height="10"><circle cx="17" cy="5" r="5" fill="#86e0a2"/></svg>Paquet ICMP (ping)</div></div>
+    <div class="lapp"><h3>Logiciel · ports et services</h3>
+    <div class="lg">${pl('#e8b84a', 'SMB 445')}Service actif et son port</div><div class="lg"><svg width="34" height="13"><rect x="1" y="1" width="32" height="11" rx="5.5" fill="#1c170b" stroke="#e8b84a" stroke-width="2"/></svg>Port modifié (non standard)</div><div class="lg">${ln('#e8b84a', 2.4, '1 6')}Session ouverte (lecteur, LUN)</div><div class="lg"><svg width="34" height="10"><circle cx="17" cy="5" r="5" fill="#e8b84a"/></svg>Paquet applicatif (TCP/UDP)</div></div>`;
+}
+
+/* ===================== inspecteur ===================== */
+function sec(t, c, body) { return `<div class="sec"><h3><span class="sw" style="background:${c}"></span>${t}</h3>${body}</div>`; }
+function ifBlock(d, f, i) {
+  const a = addrOf(d, f), L = linkAt(d.id, f.id), li = LINKS.indexOf(L), host = HOSTS.has(d.type) && d.type !== 'www', ro = d.type === 'cloud';
+  const peer = L ? DEV[other(L, d.id).d].name : '—';
+  let h = `<div class="ifc" data-if="${i}"><div class="ifh"><b>${esc(f.id)}</b><span class="mono dim">${f.mac}</span></div>`;
+  h += `<div class="phyl ${L && L.up ? '' : 'down'}">${L ? `${L.up ? '🔌' : '✕'} ${esc(MED[L.m].n)} → ${esc(peer)}` : 'non câblé'}${L ? ` <button class="btn sm" data-a="link" data-l="${li}" type="button">${L.up ? 'Débrancher' : 'Rebrancher'}</button>` : ''}</div>`;
+  if (host) h += `<div class="seg inv" style="margin-bottom:6px"><button type="button" data-a="mode" data-v="static" aria-pressed="${f.mode === 'static'}">Adresse fixe</button><button type="button" data-a="mode" data-v="dhcp" aria-pressed="${f.mode === 'dhcp'}">DHCP automatique</button></div>`;
+  if (f.mode === 'dhcp') {
+    h += a ? `<div class="subn">${a.auto ? `<span style="color:#f0a35e">APIPA ${a.ip}/16 : aucun serveur DHCP n'a répondu</span>` : `Bail DHCP : <b style="color:var(--log)">${a.ip}/${a.cidr}</b><br>passerelle ${a.gw} · DNS ${a.dns}<br>serveur ${f.lease.server}`}</div>` : `<div class="subn" style="color:#ef6b6b">Aucune adresse (bail libéré)</div>`;
+    h += `<div class="ibtns" style="margin-top:6px"><button class="btn sm go" data-a="renew" type="button">Renouveler le bail</button><button class="btn sm" data-a="release" type="button">Libérer</button></div>`;
+  } else {
+    const opts = []; for (let c = 8; c <= 30; c++) opts.push(`<option value="${c}" ${c === f.cidr ? 'selected' : ''}>/${c} · ${maskStr(c)}</option>`);
+    h += `<div class="ifg"><label>Adresse IPv4<input type="text" data-k="ip" value="${esc(f.ip)}" ${ro ? 'disabled' : ''}></label><label>Masque<select data-k="cidr" ${ro ? 'disabled' : ''}>${opts.join('')}</select></label>
+      <label>Passerelle<input type="text" data-k="gw" value="${esc(f.gw)}" placeholder="aucune" ${ro ? 'disabled' : ''}></label>${host ? `<label>Serveur DNS<input type="text" data-k="dns" value="${esc(f.dns)}" placeholder="aucun"></label>` : '<span></span>'}</div>`;
+    if (!ro) h += `<div class="ibtns" style="margin-top:6px"><button class="btn sm primary" data-a="apply" type="button">Appliquer</button></div>`;
+  }
+  if (a) h += `<div class="subn">Réseau ${n2ip(netN(a.ip, a.cidr))}/${a.cidr} · diffusion ${n2ip(bcastN(a.ip, a.cidr))} · ${fr(hostsCount(a.cidr))} hôtes possibles</div>`;
+  h += `<div class="msg" data-msg="${i}"></div></div>`;
+  return h;
+}
+function drawInsp() {
+  const d = DEV[S.sel]; if (!d) return;
+  let h = `<div class="ihead"><svg viewBox="${d.type === 'cloud' ? '-80 -50 160 100' : '-42 -36 84 72'}">${icon(d)}</svg><div><h2>${esc(d.name)}</h2><div class="muted" style="font-size:.84rem">${esc(d.role)}</div></div></div>`;
+  h += `<p class="iexp">${esc(TYPEX[d.type] || '')}</p>`;
+  if (d.type !== 'hub' && d.type !== 'cloud') h += `<div class="ibtns"><button class="btn sm" data-a="useTerm" type="button">⌨ Terminal de ${esc(d.name)}</button>${HOSTS.has(d.type) && d.type !== 'san' ? `<button class="btn sm" data-a="useBr" type="button">🌐 Navigateur</button>` : ''}</div>`;
+  const C = conflicts(); if (C[d.id]) h += `<div class="note err">⚠ Conflit d'adresses : une autre machine du même réseau utilise ${C[d.id]}. Les réponses ARP vont alterner entre les deux.</div>`;
+  if (d.ifs.length) h += sec('Interfaces · adresses IP (logique)', 'var(--log)', d.ifs.map((f, i) => ifBlock(d, f, i)).join(''));
+  if (L2.has(d.type)) {
+    const ports = LINKS.filter(l => l.a === d.id || l.b === d.id);
+    h += sec('Ports · câbles (physique)', 'var(--phy)', `<div class="tw"><table><tr><th>Port</th><th>Vers</th><th>Support</th><th></th></tr>${ports.map(l => `<tr><td>${esc(l.a === d.id ? l.ai : l.bi)}</td><td>${esc(DEV[other(l, d.id).d].name)}</td><td>${esc(MED[l.m].s)}</td><td><button class="btn sm ${l.up ? '' : 'danger'}" data-a="link" data-l="${LINKS.indexOf(l)}" type="button">${l.up ? 'branché' : 'débranché'}</button></td></tr>`).join('')}</table></div>`);
+    if (d.mact) { const e = Object.entries(d.mact); h += sec('Table des adresses MAC (apprises)', 'var(--phy)', `${e.length ? `<div class="tw"><table><tr><th>Adresse MAC</th><th>Port</th><th>Équipement</th></tr>${e.map(([m, x]) => `<tr><td>${m}</td><td>${esc(x.port)}</td><td>${esc(x.who)}</td></tr>`).join('')}</table></div>` : '<p class="muted" style="font-size:.8rem;margin:0">Vide : le switch apprend en regardant l’adresse MAC source de chaque trame qui passe. Faites un ping !</p>'}<div class="ibtns" style="margin-top:6px"><button class="btn sm" data-a="clearMac" type="button">Vider la table</button></div>`); }
+    else h += `<div class="note wa">Pas de table MAC : le hub ne sait pas qui est branché où. Chaque trame est recopiée sur tous les ports (regardez les copies « trame ignorée » pendant un ping entre PC-03 et PC-04).</div>`;
+  }
+  if ((d.svcs || []).length) h += sec('Services · ports (logiciel)', 'var(--app)', d.svcs.map((x, i) => `<div class="row"><input type="checkbox" data-a="svcOn" data-i="${i}" ${x.on ? 'checked' : ''} aria-label="Activer ${esc(SVC[x.k].n)}"><span class="sdot" style="background:${SVC[x.k].c}"></span><span class="grow">${esc(SVC[x.k].n)}${x.side !== 'all' ? ` <span class="dim">(${x.side === 'lan' ? 'côté LAN' : 'côté Internet'})</span>` : ''}</span><span class="mono dim">${x.proto}</span><input type="number" min="1" max="65535" data-a="svcPort" data-i="${i}" value="${x.port}" aria-label="Port"></div>`).join('') + `<p class="dim" style="font-size:.74rem;margin:5px 0 0">Changer un port oblige les clients à le préciser (ex. <span class="mono">http://hôte:8080</span>).</p>`);
+  if ((d.shares || []).length) h += sec('Dossiers partagés (SMB)', 'var(--app)', d.shares.map((x, i) => `<div class="row"><input type="checkbox" data-a="shareOn" data-i="${i}" ${x.on ? 'checked' : ''}><span class="grow">📁 ${esc(x.name)} <span class="dim">· ${x.files.length} éléments${x.acl ? ' · accès restreint (RH)' : ''}</span></span><span class="mono dim">${unc(d.name.toLowerCase(), x.name)}</span></div>`).join('') + (d.shares.some(x => x.on) && !svcOn(d, 'smb') ? `<div class="note wa">Dossier partagé, mais le service SMB (TCP 445) est arrêté : personne ne pourra s'y connecter.</div>` : ''));
+  if (d.mounts.length) h += sec('Lecteurs réseau connectés', 'var(--app)', d.mounts.map((m, i) => `<div class="row"><span class="grow mono">${esc(m.letter)} → ${esc(m.proto === 'nfs' ? m.host + ':/' + m.share : unc(m.host, m.share))}</span><button class="btn sm" data-a="umount" data-i="${i}" type="button">Déconnecter</button></div>`).join(''));
+  // stockage
+  const st = [];
+  (d.disks || []).forEach(x => st.push(`<tr><td>${x.t}</td><td>${esc(x.n)}</td><td>${esc(x.cap)}</td><td>bloc · ${esc(x.bus)}</td></tr>`));
+  if (d.iscsi && d.iscsi.on) st.push(`<tr><td style="color:var(--teal)">SAN</td><td>${esc(d.iscsi.lun.n)}</td><td>${esc(d.iscsi.lun.cap)}</td><td>bloc · iSCSI</td></tr>`);
+  d.mounts.forEach(m => st.push(`<tr><td>${m.owner === 'nas' ? 'NAS' : 'Réseau'}</td><td>${esc(m.share)} (${esc(DEV[m.owner].name)})</td><td>—</td><td>fichier · ${m.proto.toUpperCase()}</td></tr>`));
+  if (st.length) h += sec('Stockage · DAS, NAS, SAN', 'var(--teal)', `<div class="tw"><table><tr><th>Type</th><th>Volume</th><th>Taille</th><th>Accès</th></tr>${st.join('')}</table></div>${d.type === 'server' ? '<p class="dim" style="font-size:.74rem;margin:5px 0 0">DAS : disque relié directement au serveur par un bus (SATA, SAS, NVMe), sans réseau.</p>' : ''}`);
+  if (d.iscsi) h += sec('Initiateur iSCSI · accès au SAN', 'var(--teal)', `<p class="muted" style="font-size:.8rem;margin:0 0 6px">Carte eth1 sur le réseau SAN. ${d.iscsi.on ? `Session ouverte : ${esc(d.iscsi.lun.n)}.` : d.iscsi.disc ? 'Cibles découvertes, session fermée.' : 'Aucune session.'}</p><div class="ibtns"><button class="btn sm" data-a="cmd" data-c="iscsi discover 10.0.50.10" type="button">Découvrir 10.0.50.10</button><button class="btn sm go" data-a="cmd" data-c="iscsi login" type="button">Ouvrir la session</button><button class="btn sm" data-a="cmd" data-c="iscsi logout" type="button">Fermer</button><button class="btn sm" data-a="cmd" data-c="lsblk" type="button">lsblk</button></div>`);
+  if (d.luns) h += sec('LUN présentées (masquage)', 'var(--teal)', `<div class="tw"><table><tr><th>LUN</th><th>Taille</th><th>Autorisée pour</th><th>Session</th></tr>${d.luns.map(l => `<tr><td>${esc(l.n)}</td><td>${esc(l.cap)}</td><td>${esc(DEV[l.to].name)}</td><td>${DEV[l.to].iscsi.on ? '<span style="color:var(--log)">ouverte</span>' : '—'}</td></tr>`).join('')}</table></div>`);
+  if (d.zone) h += sec('Zone DNS ' + SUFFIX + ' (enregistrements A)', 'var(--app)', `<div class="tw"><table><tr><th>Nom</th><th>Adresse IP</th></tr>${d.zone.map((r, i) => `<tr><td>${esc(r.n)}</td><td><input type="text" data-a="zoneIp" data-i="${i}" value="${esc(r.ip)}"></td></tr>`).join('')}</table></div><div class="ibtns" style="margin-top:6px"><input type="text" id="zN" placeholder="nom" style="width:90px"><input type="text" id="zI" placeholder="192.168.10.x" style="width:120px"><button class="btn sm" data-a="zoneAdd" type="button">Ajouter</button></div><p class="dim" style="font-size:.74rem;margin:5px 0 0">Le DNS ne se met pas à jour tout seul : si un serveur change d'adresse, corrigez son enregistrement.</p>`);
+  if (d.dhcp) h += sec('Serveur DHCP', 'var(--log)', `<div class="row"><input type="checkbox" data-a="dhcpOn" ${d.dhcp.on ? 'checked' : ''}><span class="grow">Distribuer des adresses sur le LAN (UDP 67)</span></div><div class="ifg" style="margin-top:6px"><label>Début de plage<input type="text" data-dh="start" value="${esc(d.dhcp.start)}"></label><label>Fin de plage<input type="text" data-dh="end" value="${esc(d.dhcp.end)}"></label><label>DNS distribué<input type="text" data-dh="dns" value="${esc(d.dhcp.dns)}"></label><label>&nbsp;<button class="btn sm primary" data-a="dhcpApply" type="button">Appliquer</button></label></div>${Object.keys(d.dhcp.leases).length ? `<div class="tw" style="margin-top:6px"><table><tr><th>Bail</th><th>Client</th><th>MAC</th></tr>${Object.entries(d.dhcp.leases).map(([m, l]) => `<tr><td>${l.ip}</td><td>${esc(l.host)}</td><td>${m}</td></tr>`).join('')}</table></div>` : ''}<div class="msg" id="dhMsg"></div>`);
+  if (d.fwd) h += sec('NAT · redirections de ports entrants', 'var(--app)', `<div class="tw"><table><tr><th></th><th>Service</th><th>Port public</th><th>Vers IP</th><th>Port</th></tr>${d.fwd.map((f, i) => `<tr><td><input type="checkbox" data-a="fwdOn" data-i="${i}" ${f.on ? 'checked' : ''}></td><td>${esc(f.n)} · ${f.proto}</td><td><input type="number" data-a="fwdF" data-k="ext" data-i="${i}" value="${f.ext}"></td><td><input type="text" data-a="fwdF" data-k="ip" data-i="${i}" value="${esc(f.ip)}"></td><td><input type="number" data-a="fwdF" data-k="port" data-i="${i}" value="${f.port}"></td></tr>`).join('')}</table></div><p class="dim" style="font-size:.74rem;margin:5px 0 0">NAT sortant automatique : le LAN sort sur Internet avec l'adresse publique ${esc((addrOf(d, ifObj(d, 'wan')) || {}).ip || '?')}. Les connexions entrantes sont bloquées, sauf redirection.</p>`);
+  if (d.fw) h += sec('Pare-feu', 'var(--log)', `<div class="row"><input type="checkbox" data-a="icmp" ${d.fw.icmp ? 'checked' : ''}><span class="grow">Répondre au ping venant d'Internet (ICMP sur le WAN)</span></div>`);
+  if (d.vpnSrv) { const p = Object.values(DEV).filter(x => x.tun); h += sec('Serveur VPN · réseau du tunnel 10.8.0.0/24', 'var(--vpn)', p.length ? p.map(x => `<div class="row"><span class="pill">${esc(x.name)}</span><span class="grow mono">${x.tun.ip} ${vpnUnder(x).ok ? '· ' + vpnUnder(x).c.r.srcIp : '· rompu'}</span></div>`).join('') : '<p class="muted" style="font-size:.8rem;margin:0">Aucun client connecté.</p>'); }
+  if (d.vpn) h += sec('Client VPN WireGuard', 'var(--vpn)', `<div class="ifg"><label>Serveur<input type="text" data-vp="srv" value="${esc(d.vpn.srv)}"></label><label>Port UDP<input type="number" data-vp="port" value="${d.vpn.port}"></label></div><div class="ibtns" style="margin-top:6px">${d.vpn.up ? `<button class="btn sm danger" data-a="cmd" data-c="vpn disconnect" type="button">Déconnecter le tunnel</button>` : `<button class="btn sm go" data-a="vpnGo" type="button">Connecter le tunnel</button>`}</div>${d.vpn.up ? `<div class="note vp">Tunnel actif · ${d.tun.ip} · DNS ${d.tun.dns}${vpnUnder(d).ok ? '' : ' · ⚠ rompu'}</div>` : '<div class="note">Hors tunnel, seules les adresses publiques sont joignables.</div>'}`);
+  if (d.type === 'cloud') h += sec('Réseaux publics raccordés', 'var(--log)', `<div class="tw"><table><tr><th>Interface</th><th>Adresse</th><th>Vers</th></tr>${d.ifs.map(f => `<tr><td>${f.id}</td><td>${f.ip}/${f.cidr}</td><td>${esc(DEV[other(linkAt('cloud', f.id), 'cloud').d].name)}</td></tr>`).join('')}</table></div>`);
+  $('#insp').innerHTML = h;
+}
+function inspMsg(i, t, c) { const m = $(`#insp [data-msg="${i}"]`); if (m) { m.className = 'msg ' + c; m.textContent = t; } }
+function applyIf(d, i, blk) {
+  const f = d.ifs[i], g = k => blk.querySelector(`[data-k="${k}"]`);
+  const ip = g('ip').value.trim(), cidr = +g('cidr').value, gw = g('gw').value.trim(), dns = g('dns') ? g('dns').value.trim() : f.dns;
+  if (ip2n(ip) == null) return inspMsg(i, `« ${ip} » n'est pas une adresse IPv4 valide (4 nombres de 0 à 255).`, 'er');
+  if (cidr < 31 && (ip2n(ip) === netN(ip, cidr) || ip2n(ip) === bcastN(ip, cidr))) return inspMsg(i, `${ip} est l'adresse ${ip2n(ip) === netN(ip, cidr) ? 'du réseau' : 'de diffusion'} en /${cidr} : elle ne peut pas être donnée à une machine.`, 'er');
+  if (gw && ip2n(gw) == null) return inspMsg(i, 'Passerelle invalide.', 'er');
+  if (dns && ip2n(dns) == null) return inspMsg(i, 'Adresse DNS invalide.', 'er');
+  Object.assign(f, { ip, cidr, gw, dns });
+  out(d.id, `[configuration] ${f.id} = ${ip}/${cidr} · passerelle ${gw || 'aucune'} · DNS ${dns || 'aucun'}`, 'in');
+  ev('cfg', { dev: d.id });
+  render();
+  const msgs = [];
+  if (gw && !sameNet(ip, cidr, gw)) msgs.push(['wa', `Attention : la passerelle ${gw} n'est pas dans votre sous-réseau ${n2ip(netN(ip, cidr))}/${cidr}.`]);
+  const C = conflicts(); if (C[d.id]) msgs.push(['er', `Conflit : ${ip} est déjà utilisée sur ce réseau.`]);
+  inspMsg(i, msgs.length ? msgs.map(m => m[1]).join(' ') : 'Configuration appliquée.', msgs.length ? msgs[0][0] : 'ok');
+}
+function inspClick(e) {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const d = DEV[S.sel], a = b.dataset.a, blk = b.closest('[data-if]'), i = blk ? +blk.dataset.if : +b.dataset.i;
+  if (a === 'link') { toggleLink(+b.dataset.l); return; }
+  if (a === 'useTerm') { setActive(d.id); $('#termIn').focus(); return; }
+  if (a === 'useBr') { setActive(d.id); $('#url').focus(); return; }
+  if (a === 'mode') { const f = d.ifs[i], v = b.dataset.v; if (f.mode === v) return; if (v === 'static') { const cur = addrOf(d, f); if (!f.ip && cur && !cur.auto) Object.assign(f, { ip: cur.ip, cidr: cur.cidr, gw: cur.gw, dns: cur.dns }); f.mode = 'static'; f.lease = null; f.apipa = null; out(d.id, `[configuration] ${f.id} passe en adresse fixe`, 'in'); } else { f.mode = 'dhcp'; out(d.id, `[configuration] ${f.id} passe en DHCP`, 'in'); const r = doDhcp(d.id, f); out(d.id, r.ok ? `DHCP : bail ${r.ip} obtenu de ${r.srv.name}` : `DHCP : ${r.why}`, r.ok ? 'ok' : 'er'); ev('dhcp', { dev: d.id, ok: r.ok, apipa: !!r.apipa }); } ev('cfg', { dev: d.id }); render(); return; }
+  if (a === 'apply') { applyIf(d, i, blk); return; }
+  if (a === 'renew') { setActive(d.id); run(d.id, 'ipconfig /renew'); return; }
+  if (a === 'release') { setActive(d.id); run(d.id, 'ipconfig /release'); return; }
+  if (a === 'umount') { d.mounts.splice(i, 1); render(); return; }
+  if (a === 'clearMac') { d.mact = {}; render(); return; }
+  if (a === 'cmd') { setActive(d.id); run(d.id, b.dataset.c); return; }
+  if (a === 'vpnGo') { const sv2 = $('#insp [data-vp="srv"]').value.trim(), pt = +$('#insp [data-vp="port"]').value; if (sv2) d.vpn.srv = sv2; if (pt > 0 && pt < 65536) d.vpn.port = pt; setActive(d.id); run(d.id, 'vpn connect'); return; }
+  if (a === 'zoneAdd') { const n = $('#zN').value.trim().toLowerCase(), ip = $('#zI').value.trim(); if (n && ip2n(ip) != null) { const r = d.zone.find(z => z.n === n); if (r) r.ip = ip; else d.zone.push({ n, ip }); render(); } return; }
+  if (a === 'dhcpApply') { const g = k => $(`#insp [data-dh="${k}"]`).value.trim(); const st = g('start'), en = g('end'), dn = g('dns'); if (ip2n(st) == null || ip2n(en) == null || ip2n(en) < ip2n(st)) { $('#dhMsg').className = 'msg er'; $('#dhMsg').textContent = 'Plage invalide.'; return; } Object.assign(d.dhcp, { start: st, end: en, dns: dn }); render(); const la = addrOf(d, ifObj(d, 'lan')); $('#dhMsg').className = 'msg ' + (la && sameNet(la.ip, la.cidr, st) ? 'ok' : 'wa'); $('#dhMsg').textContent = la && sameNet(la.ip, la.cidr, st) ? 'Plage enregistrée. Les clients la recevront au prochain renouvellement.' : `Attention : la plage n'est pas dans le réseau du LAN (${netLbl(la)}).`; return; }
+}
+function inspChange(e) {
+  const t = e.target, a = t.dataset.a; if (!a) return; const d = DEV[S.sel], i = +t.dataset.i;
+  if (a === 'svcOn') { d.svcs[i].on = t.checked; out(d.id, `[service] ${SVC[d.svcs[i].k].n} ${t.checked ? 'démarré' : 'arrêté'}`, 'in'); ev('svc', { dev: d.id }); }
+  else if (a === 'svcPort') { const p = parseInt(t.value); if (!(p >= 1 && p <= 65535)) { t.value = d.svcs[i].port; return; } d.svcs[i].port = p; out(d.id, `[service] ${SVC[d.svcs[i].k].n} écoute maintenant sur ${d.svcs[i].proto} ${p}`, 'in'); ev('svc', { dev: d.id }); }
+  else if (a === 'shareOn') { d.shares[i].on = t.checked; ev('share', { dev: d.id }); }
+  else if (a === 'dhcpOn') { d.dhcp.on = t.checked; ev('dhcpsrv', { on: t.checked }); }
+  else if (a === 'icmp') d.fw.icmp = t.checked;
+  else if (a === 'fwdOn') d.fwd[i].on = t.checked;
+  else if (a === 'fwdF') { const k = t.dataset.k, v = t.value.trim(); if (k === 'ip') { if (ip2n(v) == null) { t.value = d.fwd[i].ip; return; } d.fwd[i].ip = v; } else { const p = parseInt(v); if (!(p >= 1 && p <= 65535)) { t.value = d.fwd[i][k]; return; } d.fwd[i][k] = p; } }
+  else if (a === 'zoneIp') { if (ip2n(t.value.trim()) == null) { t.value = d.zone[i].ip; return; } d.zone[i].ip = t.value.trim(); }
+  else return;
+  render();
+}
+function toggleLink(i) { const L = LINKS[i]; L.up = !L.up; for (const x of [L.a, L.b]) if (TERM[x] || HOSTS.has(DEV[x].type)) out(x, `[physique] câble ${DEV[L.a].name} ↔ ${DEV[L.b].name} ${L.up ? 'rebranché' : 'débranché'}`, L.up ? 'ok' : 'er'); ev('link', { l: i, up: L.up }); render(); }
+
+/* ===================== scénarios ===================== */
+const SC = { id: null, done: [], mark: 0, hint: {} };
+const since = () => EVT.slice(SC.mark);
+const E = (t, f = () => true) => since().some(e => e.t === t && f(e));
+const ipOf = id => (firstAddr(DEV[id]) || {}).ip || '?';
+const fresh = () => { buildNet(); TERM = {}; BR = {}; LAST = null; EVT = []; AQ.length = 0; };
+const SCN = [
+  { id: 'smb', t: '1 · Partage de fichiers SMB entre deux PC', d: 'PC-02 doit lire le dossier « Projets » de PC-01. Il faut une adresse joignable (logique), un service à l’écoute sur TCP 445 (logiciel) et un dossier partagé.',
+    setup() { S.sel = 'pc1'; setActive('pc1', true); },
+    end: 'Le partage SMB repose sur trois conditions : une route IP (ping), un service qui écoute sur TCP 445 et un dossier partagé avec des droits. Passez en vue Logiciel : la session Z: apparaît en pointillés ambre.',
+    steps: [
+      { t: 'Sur PC-01, affichez sa configuration IP : <code>ipconfig</code>', h: 'Le terminal est déjà sur PC-01. Notez l’adresse IPv4 : 192.168.10.11.', ok: () => E('cmd', e => e.dev === 'pc1' && e.c === 'ipconfig') },
+      { t: 'Choisissez PC-02 comme poste actif, puis vérifiez la couche logique : <code>ping 192.168.10.11</code>', h: 'Menu « poste actif » du terminal, ou clic sur PC-02 dans le schéma.', ok: () => E('ping', e => e.src === 'pc2' && e.owner === 'pc1' && e.ok) },
+      { t: 'Testez maintenant la connexion : <code>net use Z: \\\\192.168.10.11\\Projets</code>. Elle échoue : pourquoi ?', h: 'Le ping répond, mais rien n’écoute sur TCP 445 : le service SMB de PC-01 est arrêté.', ok: () => E('mount', e => e.dev === 'pc2' && !e.ok) },
+      { t: 'Sélectionnez PC-01 : dans l’inspecteur, démarrez le service SMB (TCP 445) et cochez le dossier « Projets ».', h: 'Section « Services » puis « Dossiers partagés ». Les deux sont nécessaires.', ok: () => svcOn(DEV.pc1, 'smb') && DEV.pc1.shares[0].on },
+      { t: 'Depuis PC-02, recommencez : <code>net use Z: \\\\192.168.10.11\\Projets</code>', h: 'Le terminal doit être sur PC-02.', ok: () => DEV.pc2.mounts.some(m => m.owner === 'pc1') },
+      { t: 'Listez le contenu du lecteur réseau : <code>dir Z:</code>', h: 'Regardez l’encapsulation : SMB dans TCP 445, dans IP, dans une trame Ethernet.', ok: () => E('dir', e => e.dev === 'pc2' && e.owner === 'pc1' && e.ok) },
+      { t: 'Bonus · par le nom : <code>net use Y: \\\\pc-01\\Projets</code> (le DNS traduit le nom en adresse)', h: 'Le paquet DNS part d’abord vers SRV-DNS (UDP 53), puis la connexion SMB.', ok: () => E('mount', e => e.dev === 'pc2' && e.owner === 'pc1' && e.ok && e.byName) },
+    ] },
+  { id: 'dhcp', t: '2 · Passer un poste en DHCP', d: 'PC-03 a été configuré à la main. On le passe en DHCP, puis on observe ce qui se passe quand le serveur DHCP disparaît.',
+    setup() { Object.assign(DEV.pc3.ifs[0], { mode: 'static', ip: '192.168.10.80', cidr: 24, gw: '192.168.10.1', dns: '192.168.10.53', lease: null }); S.sel = 'pc3'; setActive('pc3', true); },
+    end: 'Le DHCP distribue adresse, masque, passerelle et DNS en quatre messages (DORA) diffusés sur le réseau local. Sans serveur, Windows se donne une adresse APIPA 169.254.x.x qui ne sort pas du réseau local.',
+    steps: [
+      { t: 'Sur PC-03, constatez l’adresse fixe : <code>ipconfig /all</code> (DHCP activé : Non)', h: '', ok: () => E('cmd', e => e.dev === 'pc3' && e.c === 'ipconfig') },
+      { t: 'Dans l’inspecteur de PC-03, cliquez sur « DHCP automatique ».', h: 'Regardez l’animation : la requête DHCPDISCOVER est diffusée à tout le réseau.', ok: () => DEV.pc3.ifs[0].mode === 'dhcp' },
+      { t: 'Renouvelez et lisez le bail : <code>ipconfig /renew</code> puis <code>ipconfig /all</code>', h: 'Notez le serveur DHCP (le routeur 192.168.10.1) et la durée du bail.', ok: () => E('dhcp', e => e.dev === 'pc3' && e.ok) },
+      { t: 'Vérifiez l’accès à l’intranet : <code>ping intranet</code>', h: 'Le DNS reçu par DHCP résout le nom court.', ok: () => E('ping', e => e.src === 'pc3' && e.owner === 'web' && e.ok) },
+      { t: 'Sélectionnez RT-01 et décochez « Serveur DHCP ». Puis sur PC-03 : <code>ipconfig /release</code> et <code>ipconfig /renew</code>', h: 'Quelle adresse obtenez-vous ? Est-ce que <code>ping 192.168.10.1</code> fonctionne ?', ok: () => E('dhcp', e => e.dev === 'pc3' && e.apipa) },
+      { t: 'Réactivez le DHCP sur RT-01 et renouvelez le bail de PC-03.', h: '', ok: () => DEV.r1.dhcp.on && E('dhcp', e => e.dev === 'pc3' && e.ok) },
+    ] },
+  { id: 'gw', t: '3 · Dépannage : la passerelle', d: 'PC-02 joint les serveurs du LAN mais pas Internet. Trouvez l’erreur de configuration.',
+    setup() { DEV.pc2.ifs[0].gw = '192.168.10.254'; S.sel = 'pc2'; setActive('pc2', true); },
+    end: 'Pour un voisin du même sous-réseau, le poste n’a pas besoin de passerelle. Pour tout le reste, il envoie la trame à l’adresse MAC de sa passerelle : si elle n’existe pas, rien ne sort du LAN.',
+    steps: [
+      { t: 'Depuis PC-02 : <code>ping srv-fichiers</code> (ça marche)', h: '', ok: () => E('ping', e => e.src === 'pc2' && e.owner === 'fich' && e.ok) },
+      { t: '<code>ping www.exemple.com</code> (ça échoue)', h: '', ok: () => E('ping', e => e.src === 'pc2' && e.dst === '192.0.2.80' && !e.ok) },
+      { t: 'Cherchez l’erreur : <code>ipconfig</code> et <code>arp -a</code>', h: 'Comparez la passerelle de PC-02 avec l’adresse LAN du routeur RT-01.', ok: () => E('cmd', e => e.dev === 'pc2' && e.c === 'ipconfig') },
+      { t: 'Corrigez la passerelle de PC-02 dans l’inspecteur (192.168.10.1) puis « Appliquer ».', h: '', ok: () => DEV.pc2.ifs[0].gw === '192.168.10.1' },
+      { t: 'Vérifiez : <code>ping www.exemple.com</code> puis <code>tracert www.exemple.com</code>', h: 'Le tracert montre chaque routeur traversé : RT-01, puis le cœur de réseau de l’opérateur.', ok: () => E('ping', e => e.src === 'pc2' && e.owner === 'www' && e.ok) && E('cmd', e => e.dev === 'pc2' && e.c === 'tracert') },
+    ] },
+  { id: 'conflict', t: '4 · Conflit d’adresses IP', d: 'Un technicien a donné à PC-02 la même adresse que PC-01. Observez les symptômes, puis corrigez.',
+    setup() { DEV.pc2.ifs[0].ip = '192.168.10.11'; S.sel = 'pc2'; setActive('pc3', true); },
+    end: 'Deux machines avec la même IP répondent toutes les deux à l’ARP : les paquets arrivent tantôt chez l’une, tantôt chez l’autre. Une adresse IP doit être unique sur un réseau. Le DHCP évite ce problème.',
+    steps: [
+      { t: 'Repérez l’alerte rouge sur le schéma. Depuis PC-03, lancez deux fois <code>ping 192.168.10.11</code>', h: 'Lisez la ligne orange sous les statistiques : qui a répondu ?', ok: () => since().filter(e => e.t === 'ping' && e.src === 'pc3' && e.dst === '192.168.10.11').length >= 2 },
+      { t: 'Sur PC-03 : <code>arp -a</code>. L’adresse MAC associée à 192.168.10.11 change.', h: 'Comparez avec les adresses MAC affichées dans l’inspecteur de PC-01 et de PC-02.', ok: () => E('cmd', e => e.dev === 'pc3' && e.c === 'arp') },
+      { t: 'Corrigez PC-02 en 192.168.10.12 (inspecteur, « Appliquer »).', h: '', ok: () => DEV.pc2.ifs[0].ip === '192.168.10.12' },
+      { t: 'Vérifiez depuis PC-03 : <code>ping 192.168.10.12</code>', h: '', ok: () => E('ping', e => e.src === 'pc3' && e.owner === 'pc2' && e.ok) },
+    ] },
+  { id: 'port', t: '5 · Serveur web et numéro de port', d: 'On déplace le site intranet du port 80 vers le port 8080, comme un serveur de développement.',
+    setup() { S.sel = 'web'; setActive('pc1', true); },
+    end: 'L’adresse IP mène à la machine, le port mène au programme. Si rien n’écoute sur le port demandé, le système renvoie un TCP RST : « connexion refusée ». Le ping, lui, continue de répondre.',
+    steps: [
+      { t: 'Navigateur de PC-01 : <code>http://intranet.entreprise.lan</code>', h: 'Le port 80 est implicite pour http://', ok: () => E('browse', e => e.dev === 'pc1' && e.owner === 'web' && e.ok) },
+      { t: 'Sélectionnez SRV-WEB et changez le port HTTP de 80 à 8080.', h: 'Section Services. Le badge du schéma change de bordure.', ok: () => DEV.web.svcs.find(s => s.k === 'http').port === 8080 },
+      { t: 'Rechargez <code>http://intranet.entreprise.lan</code> : connexion refusée.', h: '', ok: () => E('browse', e => e.dev === 'pc1' && !e.ok && e.code === 'refused') },
+      { t: 'Ouvrez <code>http://intranet.entreprise.lan:8080</code>', h: '', ok: () => E('browse', e => e.dev === 'pc1' && e.owner === 'web' && e.ok && e.port === 8080) },
+      { t: 'Sur SRV-WEB : <code>netstat -an</code> pour voir les ports à l’écoute.', h: 'Choisissez SRV-WEB comme poste actif du terminal.', ok: () => E('cmd', e => e.dev === 'web' && e.c === 'netstat') },
+      { t: 'Remettez le port 80.', h: '', ok: () => DEV.web.svcs.find(s => s.k === 'http').port === 80 },
+    ] },
+  { id: 'dns', t: '6 · DNS : des noms aux adresses', d: 'Que se passe-t-il quand le serveur DNS s’arrête ?',
+    setup() { S.sel = 'dns'; setActive('pc1', true); },
+    end: 'Le DNS n’est qu’un annuaire : sans lui, les noms ne fonctionnent plus, mais les adresses IP oui. Les postes interrogent le DNS sur UDP 53 avant chaque connexion par nom.',
+    steps: [
+      { t: 'Sur PC-01 : <code>nslookup intranet</code>', h: '', ok: () => E('nslookup', e => e.dev === 'pc1' && e.ok) },
+      { t: 'Sélectionnez SRV-DNS et arrêtez le service DNS (UDP 53).', h: '', ok: () => !svcOn(DEV.dns, 'dns') },
+      { t: 'Navigateur de PC-01 : <code>http://intranet.entreprise.lan</code> échoue.', h: '', ok: () => E('browse', e => e.dev === 'pc1' && e.dnsFail) },
+      { t: 'Même page par l’adresse IP : <code>http://192.168.10.20</code>', h: '', ok: () => E('browse', e => e.dev === 'pc1' && e.ok && e.ip === '192.168.10.20') },
+      { t: 'Redémarrez le DNS, puis modifiez l’enregistrement « intranet » en 192.168.10.21 et ouvrez <code>http://intranet</code>', h: 'Le nom pointe maintenant vers SRV-FTP, qui n’a pas de serveur web : le DNS peut se tromper si on ne le tient pas à jour. Remettez ensuite 192.168.10.20.', ok: () => svcOn(DEV.dns, 'dns') && E('browse', e => e.dev === 'pc1' && e.ip === '192.168.10.21') },
+    ] },
+  { id: 'vpn', t: '7 · Télétravail par VPN', d: 'NOMADE-01 est chez lui, derrière sa box. Il veut ouvrir le partage « Commun » du serveur de fichiers.',
+    setup() { S.sel = 'nomad1'; setActive('nomad1', true); },
+    end: 'Les adresses privées de l’entreprise ne circulent pas sur Internet. Le VPN encapsule les paquets internes dans des paquets UDP chiffrés adressés à l’IP publique du routeur, qui les déballe dans le LAN. Regardez l’encapsulation : deux en-têtes IP.',
+    steps: [
+      { t: 'Sur NOMADE-01 : <code>ipconfig</code>. Son adresse vient de la box (réseau 192.168.1.0/24).', h: '', ok: () => E('cmd', e => e.dev === 'nomad1' && e.c === 'ipconfig') },
+      { t: 'Essayez <code>net use Z: \\\\192.168.10.30\\Commun</code> : échec.', h: 'Le paquet sort par la box, mais Internet rejette l’adresse privée 192.168.10.30.', ok: () => E('mount', e => e.dev === 'nomad1' && !e.ok) },
+      { t: 'L’adresse publique du routeur répond : <code>ping 203.0.113.10</code>', h: '', ok: () => E('ping', e => e.src === 'nomad1' && e.dst === '203.0.113.10' && e.ok) },
+      { t: 'Montez le tunnel : <code>vpn connect</code>', h: 'Ou bouton « Connecter le tunnel » dans l’inspecteur. Le tunnel rose apparaît sur le schéma.', ok: () => DEV.nomad1.vpn.up },
+      { t: '<code>ipconfig</code> : une interface tun0 10.8.0.2 est apparue.', h: '', ok: () => E('cmd', e => e.dev === 'nomad1' && e.c === 'ipconfig') },
+      { t: '<code>net use Z: \\\\srv-fichiers\\Commun</code> puis <code>dir Z:</code>', h: 'Le nom se résout grâce au DNS interne poussé par le VPN.', ok: () => E('dir', e => e.dev === 'nomad1' && e.owner === 'fich' && e.ok) },
+      { t: '<code>tracert 192.168.10.30</code> : le premier saut est le routeur, via le tunnel.', h: 'Bonus : sur RT-01, changez le port du service VPN (51820 → 51821) et reconnectez : le client doit connaître le bon port.', ok: () => E('cmd', e => e.dev === 'nomad1' && e.c === 'tracert') },
+    ] },
+  { id: 'storage', t: '8 · DAS, NAS et SAN', d: 'Trois façons de stocker : disque interne, stockage fichier en réseau, stockage bloc sur réseau dédié.',
+    setup() { S.sel = 'san'; setActive('fich', true); },
+    end: 'DAS : bloc, en direct sur le bus. NAS : fichier, partagé sur le LAN par SMB ou NFS. SAN : bloc, sur un réseau séparé, réservé aux serveurs ; la LUN se formate comme un disque local.',
+    steps: [
+      { t: 'Sur SRV-FICHIERS : <code>lsblk</code> (disques DAS en RAID 1)', h: 'Le terminal est déjà sur SRV-FICHIERS.', ok: () => E('cmd', e => e.dev === 'fich' && e.c === 'lsblk') },
+      { t: 'Sur PC-01 : <code>net use N: \\\\nas\\Medias</code> puis <code>dir N:</code> (accès fichier au NAS)', h: '', ok: () => E('dir', e => e.dev === 'pc1' && e.owner === 'nas' && e.ok) },
+      { t: 'Sur PC-01 : <code>ping 10.0.50.10</code> échoue : le SAN n’a pas de passerelle.', h: '', ok: () => E('ping', e => e.src === 'pc1' && e.dst === '10.0.50.10' && !e.ok) },
+      { t: 'Sur SRV-BDD : <code>iscsi discover 10.0.50.10</code>', h: 'SRV-BDD a une deuxième carte (eth1) sur le réseau SAN.', ok: () => E('iscsi', e => e.dev === 'bdd' && e.act === 'discover' && e.ok) },
+      { t: '<code>iscsi login</code> : la LUN0 est présentée, la LUN1 est masquée.', h: '', ok: () => DEV.bdd.iscsi.on },
+      { t: '<code>lsblk</code> sur SRV-BDD : la LUN apparaît comme un disque local /dev/sdb.', h: '', ok: () => E('cmd', e => e.dev === 'bdd' && e.c === 'lsblk' && e.san) },
+    ] },
+  { id: 'hub', t: '9 · Hub contre switch', d: 'Comparez la diffusion d’un hub (couche 1) avec l’aiguillage d’un switch (couche 2).',
+    setup() { S.sel = 'hub1'; setActive('pc3', true); },
+    end: 'Le hub recopie tout sur tous ses ports, le switch apprend les adresses MAC et aiguille. Un câble débranché coupe la couche physique : toutes les couches au-dessus tombent.',
+    steps: [
+      { t: `Depuis PC-03, pinguez PC-04 : <code>ping ${'{IP de PC-04}'}</code>`, h: 'Trouvez l’adresse de PC-04 sur le schéma (vue Logique) ou avec ipconfig sur PC-04. Observez les copies « trame ignorée ».', ok: () => E('ping', e => e.src === 'pc3' && e.owner === 'pc4' && e.ok) },
+      { t: 'Depuis PC-01 : <code>ping 192.168.10.12</code> (PC-02, via le switch)', h: 'Aucune copie : le switch envoie la trame sur un seul port.', ok: () => E('ping', e => e.src === 'pc1' && e.owner === 'pc2' && e.ok) },
+      { t: 'Sélectionnez SW-01 : lisez sa table d’adresses MAC.', h: 'Les MAC de PC-03 et PC-04 sont vues sur le même port (celui du hub).', ok: () => E('select', e => e.dev === 'sw1') },
+      { t: 'Cliquez sur le câble HUB-01 ↔ SW-01 pour le débrancher, puis depuis PC-03 : <code>ping 192.168.10.1</code>', h: '', ok: () => !LINKS.find(l => l.a === 'hub1').up && E('ping', e => e.src === 'pc3' && !e.ok) },
+      { t: 'Rebranchez le câble et vérifiez à nouveau le ping.', h: '', ok: () => LINKS.find(l => l.a === 'hub1').up && E('ping', e => e.src === 'pc3' && e.ok) },
+    ] },
+  { id: 'nat', t: '10 · Publier le site sur Internet (NAT)', d: 'NOMADE-02 (en 4G, sans VPN) doit voir le site de l’entreprise à l’adresse www.entreprise.fr.',
+    setup() { S.sel = 'r1'; setActive('nomad2', true); },
+    end: 'Une redirection de port ouvre un seul service du LAN à Internet : le routeur réécrit l’adresse de destination (DNAT). Le reste du LAN reste invisible. Le site voit l’adresse publique 4G du visiteur.',
+    steps: [
+      { t: 'Navigateur de NOMADE-02 : <code>http://www.entreprise.fr</code> (délai dépassé)', h: 'Le nom pointe vers l’IP publique du routeur, qui bloque tout ce qui entre.', ok: () => E('browse', e => e.dev === 'nomad2' && !e.ok && e.ip === '203.0.113.10') },
+      { t: 'Sélectionnez RT-01 : activez la redirection « Site web » TCP 80 → 192.168.10.20:80.', h: 'Section « NAT · redirections de ports entrants ».', ok: () => DEV.r1.fwd[0].on },
+      { t: 'Rechargez <code>http://www.entreprise.fr</code>', h: 'Lisez « Votre adresse IP vue par le serveur ».', ok: () => E('browse', e => e.dev === 'nomad2' && e.owner === 'web' && e.ok) },
+      { t: 'Essayez <code>http://192.168.10.20</code> depuis NOMADE-02 : pourquoi est-ce impossible ?', h: 'Adresse privée : non routée sur Internet.', ok: () => E('browse', e => e.dev === 'nomad2' && !e.ok && e.ip === '192.168.10.20') },
+    ] },
+];
+function checkScn() {
+  if (!SC.id) return false; const s = SCN.find(x => x.id === SC.id); let ch = false;
+  for (let i = 0; i < s.steps.length; i++) { if (SC.done[i]) continue; if (s.steps[i].ok()) { SC.done[i] = true; SC.mark = EVT.length; ch = true; } else break; }
+  return ch;
+}
+function startScn(id) {
+  fresh(); SC.id = id || null; SC.done = []; SC.mark = 0; SC.hint = {};
+  if (id) SCN.find(x => x.id === id).setup(); else { S.sel = 'pc1'; setActive('pc1', true); }
+  render();
+}
+function drawScn() {
+  const s = SCN.find(x => x.id === SC.id);
+  let h = `<div class="phead"><h2>Scénarios guidés</h2></div><div class="scnbar"><select id="scnSel" aria-label="Choisir un scénario"><option value="">Exploration libre</option>${SCN.map(x => `<option value="${x.id}" ${x.id === SC.id ? 'selected' : ''}>${esc(x.t)}</option>`).join('')}</select><button class="btn sm primary" id="scnGo" type="button">${s ? 'Recommencer' : 'Démarrer'}</button></div>`;
+  if (!s) h += `<p>Choisissez un scénario : le réseau est réinitialisé et préparé pour l'exercice. Les étapes se valident automatiquement selon vos actions.</p><p>En exploration libre, tout est permis : changez les adresses, les ports, débranchez des câbles, puis testez avec <code>ping</code>, <code>tracert</code>, <code>nslookup</code>, <code>net use</code> ou le navigateur.</p>`;
+  else {
+    const n = SC.done.filter(Boolean).length, cur = SC.done.length < s.steps.length ? s.steps.findIndex((_, i) => !SC.done[i]) : -1;
+    h += `<p>${esc(s.d)}</p><div class="prog"><i style="width:${n / s.steps.length * 100}%"></i></div><ol class="steps">` + s.steps.map((st, i) => `<li class="${SC.done[i] ? 'done' : i === cur ? 'cur' : ''}">${st.t}${!SC.done[i] && st.h ? ` <button class="hintb" data-hint="${i}" type="button">${SC.hint[i] ? 'masquer' : 'indice'}</button>${SC.hint[i] ? `<span class="hintt">${st.h}</span>` : ''}` : ''}</li>`).join('') + '</ol>';
+    if (n === s.steps.length) h += `<div class="note ok"><b>Scénario réussi.</b> ${esc(s.end)}</div>`;
+  }
+  $('#scn').innerHTML = h;
+}
+
+/* ===================== terminal / poste actif ===================== */
+const TCHIPS = { win: ['ipconfig /all', 'ping ', 'tracert ', 'nslookup ', 'arp -a', 'netstat -an', 'net use ', 'dir Z:', 'aide'], linux: ['ip a', 'ping ', 'traceroute ', 'nslookup ', 'ss -tln', 'lsblk', 'iscsi discover 10.0.50.10', 'aide'], ios: ['show ip interface brief', 'show ip route', 'show mac address-table', 'show ip dhcp binding', 'show ip nat translations', 'ping ', 'aide'] };
+function setActive(id, silent) { S.active = id; TT(id); if (!silent) render(); }
+function drawTerm() {
+  const d = DEV[S.active], T = TT(S.active);
+  $('#termOut').innerHTML = T.lines.map(([t, c]) => `<div class="${c}">${esc(t) || '&nbsp;'}</div>`).join('');
+  $('#termOut').scrollTop = $('#termOut').scrollHeight;
+  $('#prompt').textContent = promptOf(d);
+  const opts = Object.values(DEV).filter(x => x.type !== 'hub' && x.type !== 'cloud').map(x => `<option value="${x.id}" ${x.id === S.active ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+  if ($('#actSel').dataset.k !== S.active + Object.keys(DEV).length) { $('#actSel').innerHTML = opts; $('#actSel').dataset.k = S.active + Object.keys(DEV).length; }
+  $('#actSel').value = S.active;
+  $('#tchips').innerHTML = (TCHIPS[d.os] || TCHIPS.linux).map(c => `<button type="button" data-c="${esc(c)}">${esc(c.trim())}</button>`).join('');
+  const B = ['http://intranet.' + SUFFIX, 'http://intranet.' + SUFFIX + '/annuaire', 'http://radio.' + SUFFIX + ':8000', 'http://video.' + SUFFIX + ':8080', 'ftp://ftp.' + SUFFIX, unc('srv-fichiers', 'Commun'), 'http://nas.' + SUFFIX + ':5000', 'http://192.168.10.1', 'http://www.exemple.com', 'http://www.entreprise.fr'];
+  const BL = ['Intranet', 'Annuaire', 'Radio', 'Vidéo', 'FTP', 'Fichiers', 'NAS', 'Routeur', 'exemple.com', 'entreprise.fr'];
+  $('#bmk').innerHTML = B.map((u, i) => `<button type="button" data-u="${esc(u)}" title="${esc(u)}">${BL[i]}</button>`).join('');
+}
+
+/* ===================== rendu global ===================== */
+function render() {
+  if (checkScn()) {/* étape validée */ }
+  drawMap(); drawInsp(); drawTerm(); drawBrowser(); drawScn();
+  for (const b of $('#viewSeg').children) b.setAttribute('aria-pressed', b.dataset.v === S.view);
+}
+function selectDev(id) {
+  S.sel = id; const d = DEV[id];
+  if (['pc', 'laptop', 'server', 'www', 'nas'].includes(d.type)) S.active = id;
+  ev('select', { dev: id }); render();
+  if (window.innerWidth < 1250) $('#insp').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+}
+function initPageFS() {
+  const b = $('#pageFS'), root = document.documentElement;
+  const sync = () => { const on = document.fullscreenElement === root; b.textContent = on ? '✕ Quitter le plein écran' : '⛶ Plein écran'; b.setAttribute('aria-pressed', on); };
+  b.addEventListener('click', () => {
+    if (document.fullscreenElement) { document.exitFullscreen().catch(() => { }); return; }
+    if (!root.requestFullscreen) { b.textContent = 'Utilisez la touche F11'; setTimeout(sync, 3000); return; }
+    root.requestFullscreen().catch(() => { b.textContent = 'Plein écran bloqué ici · touche F11'; setTimeout(sync, 3500); });
+  });
+  document.addEventListener('fullscreenchange', sync);
+}
+function init() {
+  initPageFS(); drawLegend();
+  $('#viewSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { S.view = b.dataset.v; render(); } });
+  $('#btnReset').addEventListener('click', () => startScn(SC.id));
+  $('#map').addEventListener('click', e => {
+    const lk = e.target.closest('.lhit'); if (lk) { toggleLink(+lk.dataset.l); return; }
+    const g = e.target.closest('.dev'); if (g) selectDev(g.dataset.id);
+  });
+  $('#map').addEventListener('keydown', e => { const g = e.target.closest('.dev'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selectDev(g.dataset.id); } });
+  $('#insp').addEventListener('click', inspClick);
+  $('#insp').addEventListener('change', inspChange);
+  $('#actSel').addEventListener('change', e => setActive(e.target.value));
+  $('#termIn').addEventListener('keydown', e => {
+    const T = TT(S.active);
+    if (e.key === 'Enter') { const v = e.target.value; e.target.value = ''; run(S.active, v); setTimeout(() => $('#termIn').focus(), 0); }
+    else if (e.key === 'ArrowUp') { if (T.hi > 0) { T.hi--; e.target.value = T.hist[T.hi] || ''; } e.preventDefault(); }
+    else if (e.key === 'ArrowDown') { if (T.hi < T.hist.length) { T.hi++; e.target.value = T.hist[T.hi] || ''; } e.preventDefault(); }
+  });
+  $('#termOut').addEventListener('click', () => { if (!getSelection().toString()) $('#termIn').focus(); });
+  $('#tchips').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const c = b.dataset.c; if (c.endsWith(' ')) { $('#termIn').value = c; $('#termIn').focus(); } else run(S.active, c); });
+  $('#go').addEventListener('click', () => browse(S.active, $('#url').value));
+  $('#url').addEventListener('keydown', e => { if (e.key === 'Enter') { browse(S.active, $('#url').value); $('#url').blur(); } });
+  $('#bmk').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { $('#url').value = b.dataset.u; browse(S.active, b.dataset.u); } });
+  $('#bview').addEventListener('click', e => { const a = e.target.closest('[data-href]'); if (a) { $('#url').value = a.dataset.href; browse(S.active, a.dataset.href); } });
+  $('#scn').addEventListener('click', e => {
+    if (e.target.id === 'scnGo') { startScn($('#scnSel').value || null); return; }
+    const h = e.target.closest('[data-hint]'); if (h) { SC.hint[h.dataset.hint] = !SC.hint[h.dataset.hint]; drawScn(); }
+  });
+  $('#scn').addEventListener('change', e => { if (e.target.id === 'scnSel') startScn(e.target.value || null); });
+  startScn(null); drawEnc();
+}
+init();
+</script>
+</body></html>
